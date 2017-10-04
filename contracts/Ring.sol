@@ -1,6 +1,6 @@
 pragma solidity ^0.4.2;
 
-contract Mobius {
+contract Ring {
 
     uint256 constant q = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
     uint256 constant a = 0;

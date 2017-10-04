@@ -1,4 +1,4 @@
-var Mobius = artifacts.require("./Mobius.sol");
+var Ring = artifacts.require("./Ring.sol");
 
 var fixtures = [ 
   [
@@ -19,33 +19,45 @@ var fixtures = [
   ]
 ]
 
-contract('Mobius', function(accounts) {
-  before(function() {
-    return Mobius.deployed()
-  });
-        
-  it("should emit a RingMessage event when started", function() {
-    return Mobius.deployed().then(function(instance) {
-      return instance.start()
-    }).then(function(result){
-      var expected = result.logs.some(function(el) {
-        return el.event === 'RingMessage';
+var meta;
+
+contract('Ring', function(accounts) {
+
+
+  //context('Starting the contract', function() {
+
+    it("should emit a RingMessage event when started", function() {
+      return Ring.deployed().then(function(instance) {
+        return instance.start()
+      }).then(function(result){
+        var expected = result.logs.some(function(el) {
+          return el.event === 'RingMessage';
+        });
+        return expected;
+      }).catch(function(err) {
+        console.log(err);
+      }).then(function(expected) {
+        return assert.ok(expected, "RingMessage event was not emitted")
       });
-      return expected;
-    }).catch(function(err) {
-      console.log(err);
-    }).then(function(expected) {
-      return assert.ok(expected, "RingMessage event was not emitted")
     });
+
+  //});
+
+  context('Making payments to the ring', function() {
+
+    it("should accept payments with valid data", function() {
+      return Ring.deployed().then(function(instance) {
+        return instance;
+      }).then(function(instance){
+        meta = instance
+        return instance.deposit('88975504728434974553291498940586064575106864605203430999807949961102786040399', '82533270363644289553677780427377972398692841817615709365379639236869917397038', {from: accounts[0], value: web3.toWei(1, "ether")})
+
+      }).then(function(result){
+        assert.deepEqual(web3.eth.getBalance(meta.address).toString(), "1000000000000000000")
+      });
+
+    });
+
   });
 
 });
-    //}).then(function(instance){
-     // return instance.deposit(inputs[0][0], inputs[0][1], {from: accounts[0], value: web3.toWei(1, "ether")})
-   // }).then(function(result){
-    //  return meta.deposit(inputs[1][0], inputs[1][1], {from: accounts[0], value: web3.toWei(1, "ether")})
-   // }).then(function(result){
-    //  console.log(meta.address)
-     // console.log(web3.eth.getBalance(meta.address).toString())
-      //console.log(web3.eth.getBalance(accounts[0]).toString())
-    //});

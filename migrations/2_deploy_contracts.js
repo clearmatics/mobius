@@ -1,5 +1,5 @@
-var Mobius = artifacts.require("./Mobius.sol");
+var Ring = artifacts.require("./Ring.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(Mobius, 4, 1);
+  deployer.deploy(Ring, 4, 1);
 };
