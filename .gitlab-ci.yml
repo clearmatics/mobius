@@ -12,13 +12,15 @@ cache:
 services:
   - docker:dind
 
+
 test:
+  services:
+    - harshjv/testrpc
   image: node:8.6.0
   stage: test
   before_script:
     - npm install -g ethereumjs-testrpc truffle
-    - testrpc
   script:
-    - truffle test
+    - truffle test --network ci
 
 
