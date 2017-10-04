@@ -1,0 +1,24 @@
+stages:
+  - test
+  - build
+  - package
+  - deploy
+
+cache:
+  paths:
+    - vendor
+  untracked: true
+
+services:
+  - docker:dind
+
+test:
+  image: node:8.6.0
+  stage: test
+  before_script:
+    - npm install -g testrpc truffle
+    - testrpc
+  script:
+    - truffle test
+
+
