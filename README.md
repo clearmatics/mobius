@@ -11,7 +11,7 @@ Trustless Tumbling for Transaction Privacy
 
 [Truffle][2] is used to develop and test the Mobius Smart Contract. This has a dependency of [Node.js][3].
 
-    npm install -g truffle testrpc
+    npm install -g truffle ethereumjs-testrpc
 
 Start `testrpc` in a separate terminal tab or window.
 
