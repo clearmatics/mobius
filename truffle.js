@@ -1,5 +1,4 @@
 module.exports = {
-<<<<<<< HEAD
     networks: {
         development: {
             host: "localhost",
@@ -25,6 +24,7 @@ live: {
   }
   */
 },
+/*
     mocha: {
         useColors: true
     },
@@ -34,4 +34,5 @@ live: {
             runs: 200
         }
     }
+    */
 };
