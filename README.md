@@ -24,7 +24,7 @@ Start `testrpc` in a separate terminal tab or window.
     yarn testrpc
     
     # in separate window or tab
-    yarn truffle
+    yarn test
 
 This will compile the contract, deploy to the testrpc instance and run the tests. 
 

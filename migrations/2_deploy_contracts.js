@@ -1,5 +1,5 @@
-var Ring = artifacts.require("./Ring.sol");
+const Ring = artifacts.require("./Ring.sol");
 
-module.exports = function(deployer) {
-  deployer.deploy(Ring, 4, 1);
+module.exports = (deployer) => {
+  return deployer.deploy(Ring, 4, 1);
 };

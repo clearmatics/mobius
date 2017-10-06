@@ -10,7 +10,7 @@
     "truffle": "^3.4.11"
   },
   "scripts": {
-      "testrpc": "testrpc -p 8550",
-      "truffle": "truffle test"
+      "testrpc": "testrpc -p 8550 -l 0xFFFFFF",
+      "test": "truffle test"
   }
 }
