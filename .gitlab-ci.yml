@@ -15,7 +15,8 @@ services:
 
 test:
   services:
-    - harshjv/testrpc
+    - name: harshjv/testrpc
+      command: ["testrpc", "-l", "0xFFFFFF"]
   image: node:8.6.0
   stage: test
   before_script:
