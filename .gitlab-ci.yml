@@ -18,7 +18,7 @@ test:
   stage: test
   before_script:
     - npm install -g ethereumjs-testrpc truffle
-    - testrpc -p 8550 -l 0xFFFFFF &
+    - testrpc -l 0xFFFFFF &
   script:
     - truffle test --network ci
 
