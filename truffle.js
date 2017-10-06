@@ -1,4 +1,5 @@
 module.exports = {
+<<<<<<< HEAD
     networks: {
         development: {
             host: "localhost",
@@ -16,6 +17,11 @@ live: {
     // from - default address to use for any transaction Truffle makes during migrations
     // provider - web3 provider instance Truffle should use to talk to the Ethereum network.
     //          - if specified, host and port are ignored.
+    ci: {
+      host: "harshjv-testrpc",
+      port: 8545,
+      network_id: "*" // Match any network id
+    }
   }
   */
 },
