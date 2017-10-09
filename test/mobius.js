@@ -78,13 +78,15 @@ const inputDataDeposit = [
     ]
 ];
 
-
 contract('Ring', (accounts) => {
     it('Starting the contract', (done) => {
         Ring.deployed().then((instance) => {
             const owner = accounts[0];
             const txObj = { from: owner };
             instance.start(txObj).then(result => {
+                const contractBalance = web3.eth.getBalance(instance.address).toString();
+                const title = '================= CONTRACT STATUS ================= ';
+                console.log(title,'\nBALANCE:',contractBalance);
                 const expected = result.logs.some(el => (el.event === 'RingMessage'));
                 assert.ok(expected, "RingMessage event was not emitted")
                 done();
@@ -101,8 +103,15 @@ contract('Ring', (accounts) => {
             const txPromises = inputDataDeposit.map(data => {
                 const pubPosX = data[0];
                 const pubPosY = data[1];
-                return instance.deposit(pubPosX, pubPosY, txObj);
-                //.then(result => console.log('LOG: ',result.logs));
+                return instance.deposit(pubPosX, pubPosY, txObj)
+                    .then(result => {
+                        const txObj = web3.eth.getTransaction(result.tx);
+                        const receiptStr = JSON.stringify(result,null,'\t');
+                        const txStr = JSON.stringify(txObj,null,'\t');
+                        const title = '================= DEPOSIT ================= ';
+                        console.log(title,'\nRECEIPT:\n',receiptStr,'\nTRANSACTION:\n',txStr)
+                        return result;
+                    });
             });
             Promise.all(txPromises).then((result) => {
 
@@ -113,6 +122,8 @@ contract('Ring', (accounts) => {
                 });
 
                 const contractBalance = web3.eth.getBalance(instance.address).toString();
+                const title = '================= CONTRACT STATUS ================= ';
+                console.log(title,'\nBALANCE:',contractBalance);
                 assert.deepEqual(contractBalance, web3.toWei(depositValue*inputDataDeposit.length, 'ether'));
                 done();
             });
@@ -128,8 +139,15 @@ contract('Ring', (accounts) => {
                 const pubPosY = data[1];
                 const signature = data[2]; // ct list?!
                 return instance.withdraw(pubPosX, pubPosY, signature, txObj)
+                    .then(result => {
+                        const txObj = web3.eth.getTransaction(result.tx);
+                        const receiptStr = JSON.stringify(result,null,'\t');
+                        const txStr = JSON.stringify(txObj,null,'\t');
+                        const title = '================= WITHDRAW ================= ';
+                        console.log(title,'\nRECEIPT:\n',receiptStr,'\nTRANSACTION:\n',txStr)
+                        return result;
+                    })
                     .then(res => {
-                        console.log('res',res.logs.some(el => (el.event === 'WithdrawEvent')));
                         const expected = res.logs.some(el => (el.event === 'WithdrawEvent'));
                         assert.ok(expected, 'Withdraw event was not emitted');
                     });
@@ -140,7 +158,10 @@ contract('Ring', (accounts) => {
             });
 
             Promise.all(txPromises).then((result) => {
+
                 const contractBalance = web3.eth.getBalance(instance.address).toString();
+                const title = '================= CONTRACT STATUS ================= ';
+                console.log(title,'\nBALANCE:',contractBalance);
                 assert.deepEqual(contractBalance, web3.toWei(0, 'ether'))
                 done();
             });
