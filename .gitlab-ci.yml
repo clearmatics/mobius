@@ -14,12 +14,11 @@ services:
 
 
 test:
-  services:
-    - harshjv/testrpc
   image: node:8.6.0
   stage: test
   before_script:
     - npm install -g ethereumjs-testrpc truffle
+    - testrpc -l 0xFFFFFF &
   script:
     - truffle test --network ci
 
