@@ -132,26 +132,26 @@ contract('Ring', (accounts) => {
             const depositValue = 1;
             const owner = accounts[0];
             const txObj = { from: owner, value: web3.toWei(depositValue, 'ether') };
-            const txPromises = inputDataDeposit.map(data => {
+            const txPromises = inputDataDeposit.reduce((prev, data) => {
                 const pubPosX = data[0];
                 const pubPosY = data[1];
-                return instance.deposit(pubPosX, pubPosY, txObj)
-                    .then(result => {
-                        const txObj = web3.eth.getTransaction(result.tx);
-                        const receiptStr = JSON.stringify(result,null,'\t');
-                        const txStr = JSON.stringify(txObj,null,'\t');
-                        const title = '================= DEPOSIT ================= ';
-                        console.log(title,'\nRECEIPT:\n',receiptStr,'\nTRANSACTION:\n',txStr)
-                        return result;
-                    });
-            });
-            Promise.all(txPromises).then((result) => {
-
+                const executeDeposit = () => {
+                    return instance.deposit(pubPosX, pubPosY, txObj)
+                        .then(result => {
+                            const txObj = web3.eth.getTransaction(result.tx);
+                            const receiptStr = JSON.stringify(result,null,'\t');
+                            const txStr = JSON.stringify(txObj,null,'\t');
+                            const title = '================= DEPOSIT ================= ';
+                            console.log(title,'\nRECEIPT:\n',receiptStr,'\nTRANSACTION:\n',txStr)
+                            return result;
+                        });
+                };
+                return (prev ? prev.then(executeDeposit) : executeDeposit());
+            }, undefined);
+            txPromises.then((result) => {
                 //console.log(result)
-                result.forEach(res => {
-                    const expected = res.logs.some(el => (el.event === 'NewParticipant'));
-                    assert.ok(expected, 'NewParticipant event was not emitted');
-                });
+                const expected = result.logs.some(el => (el.event === 'NewParticipant'));
+                assert.ok(expected, 'NewParticipant event was not emitted');
 
                 const contractBalance = web3.eth.getBalance(instance.address).toString();
                 const title = '================= CONTRACT STATUS ================= ';
