@@ -18,10 +18,6 @@ The `orbital` CLI tool supports the generation of data to create a `mobius` cont
 
 Mobius contracts are deployed in the standard way and declare the size of a ring and the denomination of the deposit. 
 
-## Status
-
-Möbius is consider in preview status and is actively being developed. The contract will move to use `alt_bn128` and new opcodes that will make it applicable to the Etheruem Mainnet. Until then the contract is applicable to private networks. 
-
 ## Developing
 
 [Truffle][2] is used to develop and test the Mobius Smart Contract. This has a dependency of [Node.js][3].
