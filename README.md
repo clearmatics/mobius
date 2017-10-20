@@ -6,6 +6,21 @@ Trustless Tumbling for Transaction Privacy
 
 [https://eprint.iacr.org/2017/881.pdf][1]
 
+## Introduction
+
+Möbius is a Smart Contract that runs on Ethereum that offers trustless tumbling. The contract uses `secp256k1` and is applicable to private networks, due to the gas cost of running the contract. The contract will be ported to use `alt_bn128` making it applicable to the public network.
+
+## Using Möbius
+
+To generate data for a Möbius contract the [Orbital][6] tool is provided. Installation details are available in the Orbital repository.
+
+The `orbital` CLI tool supports the generation of data to create a `mobius` contract and to deposit and withdraw. 
+
+Mobius contracts are deployed in the standard way and declare the size of a ring and the denomination of the deposit. 
+
+## Status
+
+Möbius is consider in preview status and is actively being developed. The contract will move to use `alt_bn128` and new opcodes that will make it applicable to the Etheruem Mainnet. Until then the contract is applicable to private networks. 
 
 ## Developing
 
@@ -26,6 +41,8 @@ Start `testrpc` in a separate terminal tab or window.
     # in separate window or tab
     yarn test
 
+This will compile the contract, deploy to the testrpc instance and run the tests. 
+
 #### Create new test data
 
 The [orbital][6] tool is needed to generate the signatures and random keys for the tests
@@ -41,12 +58,9 @@ The [orbital][6] tool is needed to generate the signatures and random keys for t
 
 After generating the signatures overwrite the [ringSignature.json](test/ringSignature.json) with the new ring signatures.
 
-
-This will compile the contract, deploy to the testrpc instance and run the tests. 
-
 [1]: https://eprint.iacr.org/2017/881.pdf
 [2]: http://truffleframework.com/
 [3]: https://nodejs.org/
 [4]: https://yarnpkg.com/en/docs/install
 [5]: https://docs.npmjs.com/getting-started/installing-node
-[6]: https://gitlab.clearmatics.net/oss/orbital
+[6]: https://gitlab.clearmatics.com/oss/orbital
