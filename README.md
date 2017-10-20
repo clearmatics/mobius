@@ -39,7 +39,7 @@ The [orbital][6] tool is needed to generate the signatures and random keys for t
     # verify if the signatures are correct
     ./orbital -verify ringSignature.json 50b44f86159783db5092ebe77fb4b9cc29e445e54db17f0e8d2bed4eb63126fc
 
-After generating the signatures overwrite the [ringSignatures.json](test/ringSignatures.json) with the new ring signatures.
+After generating the signatures overwrite the [ringSignature.json](test/ringSignature.json) with the new ring signatures.
 
 
 This will compile the contract, deploy to the testrpc instance and run the tests. 
