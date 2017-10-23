@@ -100,14 +100,14 @@ contract Ring {
         
         uint rx;
         uint ry;
-       
+   
         for (i = 0; i < Participants; i++) {          
+            /* fieldJacobianToBigAffine `normalizes' values before returning -
+            normalize uses fast reduction on special form of secp256k1's prime! */ 
+
             uint cj = ctlist[2*i];
             uint tj = ctlist[2*i+1];      
-
-
-            /* fieldJacobianToBigAffine `normalizes' values before returning -
-            normalize uses fast reduction on special form of secp256k1's prime! */        
+       
             (rx, ry) = compute(GX, GY, pubKeyx[i], pubKeyy[i], tj, cj);
             hashList.push(rx);
             hashList.push(ry);            
@@ -120,7 +120,6 @@ contract Ring {
         }
 
         var hashout = uint256(sha256(commonHashList, hashList)) % GEN_ORDER;
-        csum = csum % GEN_ORDER;
         delete hashList;
                 
         if (hashout == csum) {
