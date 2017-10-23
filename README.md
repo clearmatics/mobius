@@ -22,7 +22,7 @@ Mobius contracts are deployed in the standard way and declare the size of a ring
 
 [Truffle][2] is used to develop and test the Mobius Smart Contract. This has a dependency of [Node.js][3].
 
-Pre-requirements:
+Prerequisites:
 
 [yarn][4] needs to be installed (but [npm][5] should work just as well).
 
