@@ -46,7 +46,6 @@ contract('Ring', (accounts) => {
                 return (prev ? prev.then(executeDeposit) : executeDeposit());
             }, undefined);
             txPromises.then((result) => {
-                //console.log(result)
                 const expected = result.logs.some(el => (el.event === 'NewParticipant'));
                 assert.ok(expected, 'NewParticipant event was not emitted');
 
@@ -66,7 +65,7 @@ contract('Ring', (accounts) => {
             const txPromises = inputDataWithdraw.map((data,i) => {
                 const pubPosX = data[0];
                 const pubPosY = data[1];
-                const signature = data[2]; // ct list?!
+                const signature = data[2]; // ctlist
                 return instance.withdraw(pubPosX, pubPosY, signature, txObj)
                     .then(result => {
                         const txObj = web3.eth.getTransaction(result.tx);
@@ -80,10 +79,6 @@ contract('Ring', (accounts) => {
                         const expected = res.logs.some(el => (el.event === 'WithdrawEvent'));
                         assert.ok(expected, 'Withdraw event was not emitted');
                     });
-                //.then(result => {
-                //    console.log('LOG: ',result.logs);
-                //    return result;
-                //});
             });
 
             Promise.all(txPromises).then((result) => {
