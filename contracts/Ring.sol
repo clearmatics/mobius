@@ -124,6 +124,8 @@ contract Ring {
 
         var hashout = uint256(sha256(commonHashList, hashList)) % GEN_ORDER;
         csum = csum % GEN_ORDER;
+        delete hashList;
+                
         if (hashout == csum) {
             bool output = msg.sender.send(PaymentAmount);
             if (output == true) {
@@ -135,10 +137,12 @@ contract Ring {
                 if (Withdrawals == Participants) {
                     Started = false;
                     Withdrawals = 0;
+                    
                     delete pubKeyx;
                     delete pubKeyy;
                     delete tagList;
                     delete commonHashList;
+                    
                     WithdrawFinished();
                 }
                 return;
@@ -149,7 +153,6 @@ contract Ring {
         }
 
         // Signature didn't verify
-        delete hashList;
         BadSignature();
     } 
 
