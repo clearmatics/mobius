@@ -4,9 +4,6 @@ const ringSignature = require("./ringSignature");
 const inputDataDeposit = ringSignature.ring.map(d => [d.x, d.y]);
 const inputDataWithdraw = ringSignature.signatures.map(d => [d.tau.x, d.tau.y, d.ctlist]);
 
-console.log('inputDataDeposit:',JSON.stringify(inputDataDeposit,null,'\t'));
-console.log('inputDataWithdraw:',JSON.stringify(inputDataWithdraw,null,'\t'));
-
 contract('Ring', (accounts) => {
     it('Starting the contract', (done) => {
         Ring.deployed().then((instance) => {
@@ -14,8 +11,6 @@ contract('Ring', (accounts) => {
             const txObj = { from: owner };
             instance.start(txObj).then(result => {
                 const contractBalance = web3.eth.getBalance(instance.address).toString();
-                const title = '================= CONTRACT STATUS ================= ';
-                console.log(title,'\nADDRESS:',instance.address,'\nBALANCE:',contractBalance);
                 const expected = result.logs.some(el => (el.event === 'RingMessage'));
                 assert.ok(expected, "RingMessage event was not emitted")
                 done();
@@ -38,21 +33,16 @@ contract('Ring', (accounts) => {
                             const txObj = web3.eth.getTransaction(result.tx);
                             const receiptStr = JSON.stringify(result,null,'\t');
                             const txStr = JSON.stringify(txObj,null,'\t');
-                            const title = '================= DEPOSIT ================= ';
-                            console.log(title,'\nRECEIPT:\n',receiptStr,'\nTRANSACTION:\n',txStr)
                             return result;
                         });
                 };
                 return (prev ? prev.then(executeDeposit) : executeDeposit());
             }, undefined);
             txPromises.then((result) => {
-                //console.log(result)
                 const expected = result.logs.some(el => (el.event === 'NewParticipant'));
                 assert.ok(expected, 'NewParticipant event was not emitted');
 
                 const contractBalance = web3.eth.getBalance(instance.address).toString();
-                const title = '================= CONTRACT STATUS ================= ';
-                console.log(title,'\nADDRESS:',instance.address,'\nBALANCE:',contractBalance);
                 assert.deepEqual(contractBalance, web3.toWei(depositValue*inputDataDeposit.length, 'ether'));
                 done();
             });
@@ -66,36 +56,28 @@ contract('Ring', (accounts) => {
             const txPromises = inputDataWithdraw.map((data,i) => {
                 const pubPosX = data[0];
                 const pubPosY = data[1];
-                const signature = data[2]; // ct list?!
+                const signature = data[2]; // ctlist
                 return instance.withdraw(pubPosX, pubPosY, signature, txObj)
                     .then(result => {
                         const txObj = web3.eth.getTransaction(result.tx);
                         const receiptStr = JSON.stringify(result,null,'\t');
                         const txStr = JSON.stringify(txObj,null,'\t');
-                        const title = '================= WITHDRAW ================= ';
-                        console.log(title,'\nRECEIPT:\n',receiptStr,'\nTRANSACTION:\n',txStr)
                         return result;
                     })
                     .then(res => {
                         const expected = res.logs.some(el => (el.event === 'WithdrawEvent'));
                         assert.ok(expected, 'Withdraw event was not emitted');
                     });
-                //.then(result => {
-                //    console.log('LOG: ',result.logs);
-                //    return result;
-                //});
             });
 
             Promise.all(txPromises).then((result) => {
 
                 const contractBalance = web3.eth.getBalance(instance.address).toString();
-                const title = '================= CONTRACT STATUS ================= ';
-                console.log(title,'\nADDRESS:',instance.address,'\nBALANCE:',contractBalance);
                 assert.deepEqual(contractBalance, web3.toWei(0, 'ether'))
                 done();
             });
         });
-    }).timeout(0);
+    });
 });
 
 /*
