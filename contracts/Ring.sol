@@ -64,7 +64,6 @@ contract Ring {
         }
 
         // If all the above are satisfied, add to ring :)
-
         pubKeyx.push(pubx);
         pubKeyy.push(puby);
 
@@ -74,15 +73,7 @@ contract Ring {
         if (pubKeyx.length == Participants) {
             WithdrawReady();
             
-            for (i = 0; i < Participants; i++) {
-                commonHashList.push(pubKeyx[i]);
-            }
-            
-            for (i = 0; i < Participants; i++) {
-                commonHashList.push(pubKeyy[i]);
-            }
-
-            commonHashList.push(uint256(Message));
+            precalculateWithdrawValues();           
         }
     } 
     
@@ -105,41 +96,36 @@ contract Ring {
         }
 
         // Form H(R||m)
-        hashx = uint256(sha256(pubKeyx, pubKeyy, Message));
-        (hashx, hashy) = gety(hashx);
-
-        csum = 0;
-
-        for (i = 0; i < Participants; i++) {
-            yjx = pubKeyx[i];
-            yjy = pubKeyy[i];
-            cj = ctlist[2*i];
-            tj = ctlist[2*i+1];
-            // t.H(R)
-            (Htx, Hty) = ecMul(hashx, hashy, tj);
-            // t.g
-            (gtx, gty) = ecMul(GX, GY, tj);
-            // c.y (= xc.g)
-            (ycx, ycy) = ecMul(yjx, yjy, cj);
-            // c.tag (= xc.H(R))
-            (taucx, taucy) = ecMul(tagx, tagy, cj);
-            // Construct t.G + c.Y
-            (gtx, gty) = ecAdd(gtx, gty, ycx, ycy);
-            // Construct t.H + c.tag
-            (Htx, Hty) = ecAdd(Htx, Hty, taucx, taucy);
+        uint csum = 0;
+        
+        uint gtx;
+        uint gty;
+        uint Htx;
+        uint Hty;
+        
+        for (i = 0; i < Participants; i++) {          
+            uint cj = ctlist[2*i];
+            uint tj = ctlist[2*i+1];      
+            
+            (gtx, gty) = compute(GX, GY, pubKeyx[i], pubKeyy[i], tj, cj);
+            (Htx, Hty) = compute(hashx, hashy, tagx, tagy, tj, cj);
 
             /* fieldJacobianToBigAffine `normalizes' values before returning -
             normalize uses fast reduction on special form of secp256k1's prime! :D */
 
             hashList.push(gtx);
             hashList.push(gty);
+            
             hashList.push(Htx);
             hashList.push(Hty);
+            
             csum = addmod(csum, cj, GEN_ORDER);
         }
 
         var hashout = uint256(sha256(commonHashList, hashList)) % GEN_ORDER;
         csum = csum % GEN_ORDER;
+        delete hashList;
+                
         if (hashout == csum) {
             bool output = msg.sender.send(PaymentAmount);
             if (output == true) {
@@ -151,10 +137,12 @@ contract Ring {
                 if (Withdrawals == Participants) {
                     Started = false;
                     Withdrawals = 0;
+                    
                     delete pubKeyx;
                     delete pubKeyy;
                     delete tagList;
                     delete commonHashList;
+                    
                     WithdrawFinished();
                 }
                 return;
@@ -165,26 +153,57 @@ contract Ring {
         }
 
         // Signature didn't verify
-        delete hashList;
         BadSignature();
-    }  
+    } 
+
+    function compute(uint ax, uint ay, uint bx, uint by, uint tj, uint cj) private constant returns (uint256 resultX, uint256 resultY) {
+        uint lhsx; 
+        uint lhsy;
+        
+        uint rhsx; 
+        uint rhsy;     
     
-    // withdrawl variable, used to avoid local variable overflowing the stack
-    uint csum; 
-    uint hashx; 
-    uint hashy;
-    uint yjx; 
-    uint yjy; 
-    uint cj; 
-    uint tj;
-    uint Htx; 
-    uint Hty;
-    uint gtx; 
-    uint gty; 
-    uint ycx; 
-    uint ycy;        
-    uint taucx;
-    uint taucy;           
+        // t.a
+        (lhsx, lhsy) = ecMul(ax, ay, tj);
+        
+        // c.y (= xc.g)
+        (rhsx, rhsy) = ecMul(bx, by, cj);
+      
+        // Construct t.G + c.Y
+        (resultX, resultY) = ecAdd(lhsx, lhsy, rhsx, rhsy);    
+    }
+    
+    function precalculateWithdrawValues() {
+        for (uint i = 0; i < Participants; i++) {
+            commonHashList.push(pubKeyx[i]);
+        }
+        
+        for (i = 0; i < Participants; i++) {
+            commonHashList.push(pubKeyy[i]);
+        }
+
+        commonHashList.push(uint256(Message));
+        
+        hashx = uint256(sha256(pubKeyx, pubKeyy, Message));
+        (hashx, hashy) = gety(hashx);      
+    }
+     
+    
+    function gety(uint256 x) private constant returns (uint256 y, uint256) {
+        // Security parameter. P(fail) = 1/(2^k)
+        uint k = 999;
+        uint256 z = FIELD_ORDER + 1;
+        z = z / 4;
+
+        for (uint i = 0; i < k; i++) {
+            uint256 beta = addmod(mulmod(mulmod(x, x, FIELD_ORDER), x, FIELD_ORDER), 7, FIELD_ORDER);
+            y = expMod(beta, z, FIELD_ORDER);
+            if (beta == mulmod(y, y, FIELD_ORDER)) {
+                return (x, y);
+            }
+            x = (x + 1) % FIELD_ORDER;
+        }
+    }     
     
     event RingMessage(
         bytes32 message
@@ -204,6 +223,9 @@ contract Ring {
     event WithdrawReady();
     event WithdrawFinished();
 
+
+    uint constant FIELD_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
+    uint constant GEN_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
     uint constant GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798;
     uint constant GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8;
  
@@ -217,13 +239,19 @@ contract Ring {
     bool public Started = false;
     uint public Withdrawals = 0;
 
-    // Creating arrays needed to store the submitted public keys :)
-    uint[] pubKeyx;
-    uint[] pubKeyy; 
+    // Creating arrays needed to store the submitted public keys 
+    uint[] public pubKeyx;
+    uint[] public pubKeyy; 
     
-    uint[] commonHashList;        
+    // Precalculate withdraw values
+    uint private hashx; 
+    uint private hashy; 
+    uint[] private commonHashList;        
+    
     uint[] hashList; 
-    uint[] tagList;
+    
+    // Withdrawl tags    
+    uint[] private tagList;
 
     //
     // ECLib   
@@ -435,27 +463,8 @@ contract Ring {
             }
         }
     }
-
-    function gety(uint256 x) private constant returns (uint256 y, uint256) {
-        // Security parameter. P(fail) = 1/(2^k)
-        uint k = 999;
-        uint256 z = FIELD_ORDER + 1;
-        z = z / 4;
-
-        for (uint i = 0; i < k; i++) {
-            uint256 beta = addmod(mulmod(mulmod(x, x, FIELD_ORDER), x, FIELD_ORDER), 7, FIELD_ORDER);
-            y = expMod(beta, z, FIELD_ORDER);
-            if (beta == mulmod(y, y, FIELD_ORDER)) {
-                return (x, y);
-            }
-            x = (x + 1) % FIELD_ORDER;
-        }
-    }
   
     uint256 constant Q_CONSTANT = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
     uint256 constant A_CONSTANT = 0;
-
-    uint constant FIELD_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
-    uint constant GEN_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
 }
 
