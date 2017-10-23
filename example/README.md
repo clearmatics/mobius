@@ -14,7 +14,7 @@ A Möbius contract should be deployed with two arguments. The first represents t
 
 Deposits are made using the `deposit` function.
 
-A deposit uses the public key `x` and `y` coordinates along with a value to be paid. Since the payee for the contract is identified through the corresponding private no identity for the payee needs to given to the contract.
+A deposit uses the public key `x` and `y` coordinates along with a value to be paid. Since the payee for the contract is identified through the corresponding private key no identity for the payee needs to given to the contract.
 
 ## Withdrawing from a contract
 
@@ -30,4 +30,4 @@ This has the matching signature
 
     ringJSON.signatures[0]
 
-To deposit use the public key coordinate pair data, to withdraw use the matching signature data. 
+In summary to deposit use the public key coordinate pair data, to withdraw use the matching signature data. 
