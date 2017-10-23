@@ -64,7 +64,6 @@ contract Ring {
         }
 
         // If all the above are satisfied, add to ring :)
-
         pubKeyx.push(pubx);
         pubKeyy.push(puby);
 
@@ -83,6 +82,9 @@ contract Ring {
             }
 
             commonHashList.push(uint256(Message));
+            
+            hashx = uint256(sha256(pubKeyx, pubKeyy, Message));
+            (hashx, hashy) = gety(hashx);            
         }
     } 
     
@@ -105,9 +107,6 @@ contract Ring {
         }
 
         // Form H(R||m)
-        hashx = uint256(sha256(pubKeyx, pubKeyy, Message));
-        (hashx, hashy) = gety(hashx);
-
         csum = 0;
 
         for (i = 0; i < Participants; i++) {
@@ -169,10 +168,24 @@ contract Ring {
         BadSignature();
     }  
     
+    function gety(uint256 x) private constant returns (uint256 y, uint256) {
+        // Security parameter. P(fail) = 1/(2^k)
+        uint k = 999;
+        uint256 z = FIELD_ORDER + 1;
+        z = z / 4;
+
+        for (uint i = 0; i < k; i++) {
+            uint256 beta = addmod(mulmod(mulmod(x, x, FIELD_ORDER), x, FIELD_ORDER), 7, FIELD_ORDER);
+            y = expMod(beta, z, FIELD_ORDER);
+            if (beta == mulmod(y, y, FIELD_ORDER)) {
+                return (x, y);
+            }
+            x = (x + 1) % FIELD_ORDER;
+        }
+    }   
+    
     // withdrawl variable, used to avoid local variable overflowing the stack
     uint csum; 
-    uint hashx; 
-    uint hashy;
     uint yjx; 
     uint yjy; 
     uint cj; 
@@ -204,6 +217,9 @@ contract Ring {
     event WithdrawReady();
     event WithdrawFinished();
 
+
+    uint constant FIELD_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
+    uint constant GEN_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
     uint constant GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798;
     uint constant GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8;
  
@@ -221,7 +237,11 @@ contract Ring {
     uint[] pubKeyx;
     uint[] pubKeyy; 
     
+    uint hashx; 
+    uint hashy;
+        
     uint[] commonHashList;        
+    
     uint[] hashList; 
     uint[] tagList;
 
@@ -435,27 +455,8 @@ contract Ring {
             }
         }
     }
-
-    function gety(uint256 x) private constant returns (uint256 y, uint256) {
-        // Security parameter. P(fail) = 1/(2^k)
-        uint k = 999;
-        uint256 z = FIELD_ORDER + 1;
-        z = z / 4;
-
-        for (uint i = 0; i < k; i++) {
-            uint256 beta = addmod(mulmod(mulmod(x, x, FIELD_ORDER), x, FIELD_ORDER), 7, FIELD_ORDER);
-            y = expMod(beta, z, FIELD_ORDER);
-            if (beta == mulmod(y, y, FIELD_ORDER)) {
-                return (x, y);
-            }
-            x = (x + 1) % FIELD_ORDER;
-        }
-    }
   
     uint256 constant Q_CONSTANT = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
     uint256 constant A_CONSTANT = 0;
-
-    uint constant FIELD_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
-    uint constant GEN_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
 }
 
