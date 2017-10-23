@@ -73,18 +73,7 @@ contract Ring {
         if (pubKeyx.length == Participants) {
             WithdrawReady();
             
-            for (i = 0; i < Participants; i++) {
-                commonHashList.push(pubKeyx[i]);
-            }
-            
-            for (i = 0; i < Participants; i++) {
-                commonHashList.push(pubKeyy[i]);
-            }
-
-            commonHashList.push(uint256(Message));
-            
-            hashx = uint256(sha256(pubKeyx, pubKeyy, Message));
-            (hashx, hashy) = gety(hashx);            
+            precalculateWithdrawValues();           
         }
     } 
     
@@ -109,21 +98,25 @@ contract Ring {
         // Form H(R||m)
         csum = 0;
 
-        for (i = 0; i < Participants; i++) {
-            yjx = pubKeyx[i];
-            yjy = pubKeyy[i];
+        for (i = 0; i < Participants; i++) {          
             cj = ctlist[2*i];
             tj = ctlist[2*i+1];
-            // t.H(R)
-            (Htx, Hty) = ecMul(hashx, hashy, tj);
+            
             // t.g
             (gtx, gty) = ecMul(GX, GY, tj);
+            
             // c.y (= xc.g)
-            (ycx, ycy) = ecMul(yjx, yjy, cj);
-            // c.tag (= xc.H(R))
-            (taucx, taucy) = ecMul(tagx, tagy, cj);
+            (ycx, ycy) = ecMul(pubKeyx[i], pubKeyy[i], cj);
+          
             // Construct t.G + c.Y
             (gtx, gty) = ecAdd(gtx, gty, ycx, ycy);
+
+            // t.H(R)
+            (Htx, Hty) = ecMul(hashx, hashy, tj);
+
+            // c.tag (= xc.H(R))
+            (taucx, taucy) = ecMul(tagx, tagy, cj);
+                        
             // Construct t.H + c.tag
             (Htx, Hty) = ecAdd(Htx, Hty, taucx, taucy);
 
@@ -132,8 +125,10 @@ contract Ring {
 
             hashList.push(gtx);
             hashList.push(gty);
+            
             hashList.push(Htx);
             hashList.push(Hty);
+            
             csum = addmod(csum, cj, GEN_ORDER);
         }
 
@@ -166,7 +161,23 @@ contract Ring {
         // Signature didn't verify
         delete hashList;
         BadSignature();
-    }  
+    } 
+    
+    function precalculateWithdrawValues() {
+        for (uint i = 0; i < Participants; i++) {
+            commonHashList.push(pubKeyx[i]);
+        }
+        
+        for (i = 0; i < Participants; i++) {
+            commonHashList.push(pubKeyy[i]);
+        }
+
+        commonHashList.push(uint256(Message));
+        
+        hashx = uint256(sha256(pubKeyx, pubKeyy, Message));
+        (hashx, hashy) = gety(hashx);      
+    }
+     
     
     function gety(uint256 x) private constant returns (uint256 y, uint256) {
         // Security parameter. P(fail) = 1/(2^k)
@@ -186,16 +197,19 @@ contract Ring {
     
     // withdrawl variable, used to avoid local variable overflowing the stack
     uint csum; 
-    uint yjx; 
-    uint yjy; 
+
     uint cj; 
     uint tj;
+    
     uint Htx; 
     uint Hty;
+    
     uint gtx; 
     uint gty; 
+    
     uint ycx; 
-    uint ycy;        
+    uint ycy; 
+           
     uint taucx;
     uint taucy;           
     
@@ -241,9 +255,12 @@ contract Ring {
     uint hashy;
         
     uint[] commonHashList;        
+
+    uint[] tagList;
+
+
     
     uint[] hashList; 
-    uint[] tagList;
 
     //
     // ECLib   
