@@ -98,27 +98,24 @@ contract Ring {
         // Form H(R||m)
         uint csum = 0;
         
-        uint gtx;
-        uint gty;
-        uint Htx;
-        uint Hty;
-        
+        uint rx;
+        uint ry;
+       
         for (i = 0; i < Participants; i++) {          
             uint cj = ctlist[2*i];
             uint tj = ctlist[2*i+1];      
-            
-            (gtx, gty) = compute(GX, GY, pubKeyx[i], pubKeyy[i], tj, cj);
-            (Htx, Hty) = compute(hashx, hashy, tagx, tagy, tj, cj);
+
 
             /* fieldJacobianToBigAffine `normalizes' values before returning -
-            normalize uses fast reduction on special form of secp256k1's prime! :D */
-
-            hashList.push(gtx);
-            hashList.push(gty);
+            normalize uses fast reduction on special form of secp256k1's prime! */        
+            (rx, ry) = compute(GX, GY, pubKeyx[i], pubKeyy[i], tj, cj);
+            hashList.push(rx);
+            hashList.push(ry);            
             
-            hashList.push(Htx);
-            hashList.push(Hty);
-            
+            (rx, ry) = compute(hashx, hashy, tagx, tagy, tj, cj);
+            hashList.push(rx);
+            hashList.push(ry);
+           
             csum = addmod(csum, cj, GEN_ORDER);
         }
 
@@ -129,19 +126,22 @@ contract Ring {
         if (hashout == csum) {
             bool output = msg.sender.send(PaymentAmount);
             if (output == true) {
+                // Signature and send successful 
                 tagList.push(tagx);
-                // Signature and send successful
+
                 Withdrawals += 1;
-                delete hashList;
                 WithdrawEvent();
+
                 if (Withdrawals == Participants) {
                     Started = false;
                     Withdrawals = 0;
                     
                     delete pubKeyx;
                     delete pubKeyy;
-                    delete tagList;
+
                     delete commonHashList;
+
+                    delete tagList;
                     
                     WithdrawFinished();
                 }
