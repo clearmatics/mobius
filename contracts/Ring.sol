@@ -96,29 +96,19 @@ contract Ring {
         }
 
         // Form H(R||m)
-        csum = 0;
-
+        uint csum = 0;
+        
+        uint gtx;
+        uint gty;
+        uint Htx;
+        uint Hty;
+        
         for (i = 0; i < Participants; i++) {          
-            cj = ctlist[2*i];
-            tj = ctlist[2*i+1];
+            uint cj = ctlist[2*i];
+            uint tj = ctlist[2*i+1];      
             
-            // t.g
-            (gtx, gty) = ecMul(GX, GY, tj);
-            
-            // c.y (= xc.g)
-            (ycx, ycy) = ecMul(pubKeyx[i], pubKeyy[i], cj);
-          
-            // Construct t.G + c.Y
-            (gtx, gty) = ecAdd(gtx, gty, ycx, ycy);
-
-            // t.H(R)
-            (Htx, Hty) = ecMul(hashx, hashy, tj);
-
-            // c.tag (= xc.H(R))
-            (taucx, taucy) = ecMul(tagx, tagy, cj);
-                        
-            // Construct t.H + c.tag
-            (Htx, Hty) = ecAdd(Htx, Hty, taucx, taucy);
+            (gtx, gty) = compute(GX, GY, pubKeyx[i], pubKeyy[i], tj, cj);
+            (Htx, Hty) = compute(hashx, hashy, tagx, tagy, tj, cj);
 
             /* fieldJacobianToBigAffine `normalizes' values before returning -
             normalize uses fast reduction on special form of secp256k1's prime! :D */
@@ -162,6 +152,23 @@ contract Ring {
         delete hashList;
         BadSignature();
     } 
+
+    function compute(uint ax, uint ay, uint bx, uint by, uint tj, uint cj) private constant returns (uint256 resultX, uint256 resultY) {
+        uint lhsx; 
+        uint lhsy;
+        
+        uint rhsx; 
+        uint rhsy;     
+    
+        // t.a
+        (lhsx, lhsy) = ecMul(ax, ay, tj);
+        
+        // c.y (= xc.g)
+        (rhsx, rhsy) = ecMul(bx, by, cj);
+      
+        // Construct t.G + c.Y
+        (resultX, resultY) = ecAdd(lhsx, lhsy, rhsx, rhsy);    
+    }
     
     function precalculateWithdrawValues() {
         for (uint i = 0; i < Participants; i++) {
@@ -193,25 +200,7 @@ contract Ring {
             }
             x = (x + 1) % FIELD_ORDER;
         }
-    }   
-    
-    // withdrawl variable, used to avoid local variable overflowing the stack
-    uint csum; 
-
-    uint cj; 
-    uint tj;
-    
-    uint Htx; 
-    uint Hty;
-    
-    uint gtx; 
-    uint gty; 
-    
-    uint ycx; 
-    uint ycy; 
-           
-    uint taucx;
-    uint taucy;           
+    }     
     
     event RingMessage(
         bytes32 message
@@ -247,20 +236,19 @@ contract Ring {
     bool public Started = false;
     uint public Withdrawals = 0;
 
-    // Creating arrays needed to store the submitted public keys :)
-    uint[] pubKeyx;
-    uint[] pubKeyy; 
+    // Creating arrays needed to store the submitted public keys 
+    uint[] public pubKeyx;
+    uint[] public pubKeyy; 
     
-    uint hashx; 
-    uint hashy;
-        
-    uint[] commonHashList;        
-
-    uint[] tagList;
-
-
+    // Precalculate withdraw values
+    uint private hashx; 
+    uint private hashy; 
+    uint[] private commonHashList;        
     
     uint[] hashList; 
+    
+    // Withdrawl tags    
+    uint[] private tagList;
 
     //
     // ECLib   
