@@ -53,24 +53,24 @@ contract('Ring', (accounts) => {
         Ring.deployed().then((instance) => {
             const owner = accounts[0];
             const txObj = { from: owner, gas: 16000000 };
-            const txPromises = inputDataWithdraw.map((data,i) => {
+            const txPromises = inputDataWithdraw.reduce((prev, data) => {
                 const pubPosX = data[0];
                 const pubPosY = data[1];
-                const signature = data[2]; // ctlist
-                return instance.withdraw(pubPosX, pubPosY, signature, txObj)
-                    .then(result => {
-                        const txObj = web3.eth.getTransaction(result.tx);
-                        const receiptStr = JSON.stringify(result,null,'\t');
-                        const txStr = JSON.stringify(txObj,null,'\t');
-                        return result;
-                    })
-                    .then(res => {
-                        const expected = res.logs.some(el => (el.event === 'WithdrawEvent'));
-                        assert.ok(expected, 'Withdraw event was not emitted');
-                    });
-            });
-
-            Promise.all(txPromises).then((result) => {
+                const signature = data[2]; // ctlist                
+                const executeWithdraw = () => {
+                    return instance.withdraw(pubPosX, pubPosY, signature, txObj)
+                        .then(result => {
+                            const txObj = web3.eth.getTransaction(result.tx);
+                            const receiptStr = JSON.stringify(result,null,'\t');
+                            const txStr = JSON.stringify(txObj,null,'\t');
+                            return result;
+                        });
+                };
+                return (prev ? prev.then(executeWithdraw) : executeWithdraw());
+            }, undefined);
+            txPromises.then((result) => {
+                const expected = result.logs.some(el => (el.event === 'WithdrawEvent'));
+                assert.ok(expected, 'Withdraw event was not emitted');
 
                 const contractBalance = web3.eth.getBalance(instance.address).toString();
                 assert.deepEqual(contractBalance, web3.toWei(0, 'ether'))
