@@ -4,7 +4,7 @@ Trustless Tumbling for Transaction Privacy
 
 ## White Paper
 
-[https://eprint.iacr.org/2017/881.pdf][1]
+[S. Meiklejon, R. Mercer. Möbius: Trustless Tumbling for Transaction Privacy][1]
 
 ## Introduction
 
