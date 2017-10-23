@@ -77,7 +77,7 @@ contract('Ring', (accounts) => {
                 done();
             });
         });
-    }).timeout(0);
+    });
 });
 
 /*
