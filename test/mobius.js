@@ -89,4 +89,5 @@ contract('Ring', (accounts) => {
 * submitting a transaction with a bad transaction value (e.g. submitting a payment of 1 when the ring size is 5)
 * changing input types to the wrong values (e.g. make an int a string)
 * submitting a withdrawal twice
+* submitting a deposit twice to the same withdraw address
  */
