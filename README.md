@@ -59,4 +59,4 @@ After generating the signatures overwrite the [ringSignature.json](test/ringSign
 [3]: https://nodejs.org/
 [4]: https://yarnpkg.com/en/docs/install
 [5]: https://docs.npmjs.com/getting-started/installing-node
-[6]: https://gitlab.clearmatics.com/oss/orbital
+[6]: https://github.com/clearmatics/orbital
