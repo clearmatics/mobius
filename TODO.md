@@ -2,6 +2,6 @@
 
 * Move curve to `alt_bn128`
 * Implement new OpCodes 
-* Make Mobius work with tokens
+* Make Möbius work with tokens
 * Document usage with stealth addresses
 
