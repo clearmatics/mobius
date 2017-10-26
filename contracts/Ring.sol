@@ -1,3 +1,8 @@
+
+// Copyright (c) 2016-2017 Clearmatics Technologies Ltd
+
+// SPDX-License-Identifier: (LGPL-3.0+ AND GPL-3.0)
+
 pragma solidity ^0.4.2;
 
 
@@ -255,6 +260,12 @@ contract Ring {
     //
     // ECLib   
     //
+
+    // The following code is taken from Jordi Baylina's ecsol library.
+    // (<https://github.com/jbaylina/ecsol>).  This code is distributed
+    // under the GNU General Public License version 3.
+
+    // Copyright (C) 2016 Jordi Baylina
 
     function _jAdd(
         uint256 x1, 
