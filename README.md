@@ -16,11 +16,11 @@ To generate data for a Möbius contract the [Orbital][6] tool is provided. Insta
 
 The `orbital` CLI tool supports the generation of data to create a `mobius` contract and to deposit and withdraw. 
 
-Mobius contracts are deployed in the standard way and declare the size of a ring and the denomination of the deposit. 
+Möbius contracts are deployed in the standard way and declare the size of a ring and the denomination of the deposit.
 
 ## Developing
 
-[Truffle][2] is used to develop and test the Mobius Smart Contract. This has a dependency of [Node.js][3].
+[Truffle][2] is used to develop and test the Möbius Smart Contract. This has a dependency of [Node.js][3].
 
 Prerequisites:
 
