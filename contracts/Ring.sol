@@ -78,7 +78,18 @@ contract Ring {
         if (pubKeyx.length == Participants) {
             WithdrawReady();
             
-            precalculateWithdrawValues();           
+            for (i = 0; i < Participants; i++) {
+                commonHashList.push(pubKeyx[i]);
+            }
+            
+            for (i = 0; i < Participants; i++) {
+                commonHashList.push(pubKeyy[i]);
+            }
+
+            commonHashList.push(uint256(Message));
+            
+            hashx = uint256(sha256(pubKeyx, pubKeyy, Message));
+            (hashx, hashy) = gety(hashx);               
         }
     } 
     
@@ -175,23 +186,7 @@ contract Ring {
       
         // Construct t.G + c.Y
         (resultX, resultY) = ecAdd(lhsx, lhsy, rhsx, rhsy);    
-    }
-    
-    function precalculateWithdrawValues() {
-        for (uint i = 0; i < Participants; i++) {
-            commonHashList.push(pubKeyx[i]);
-        }
-        
-        for (i = 0; i < Participants; i++) {
-            commonHashList.push(pubKeyy[i]);
-        }
-
-        commonHashList.push(uint256(Message));
-        
-        hashx = uint256(sha256(pubKeyx, pubKeyy, Message));
-        (hashx, hashy) = gety(hashx);      
-    }
-     
+    } 
     
     function gety(uint256 x) private constant returns (uint256 y, uint256) {
         // Security parameter. P(fail) = 1/(2^k)
@@ -226,7 +221,6 @@ contract Ring {
     event WithdrawEvent();
     event WithdrawReady();
     event WithdrawFinished();
-
 
     uint constant FIELD_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
     uint constant GEN_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
