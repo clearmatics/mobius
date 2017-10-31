@@ -10,6 +10,8 @@ contract Ring {
     function Ring(uint participants, uint payments) public {
         Participants = participants;
         PaymentAmount = payments * 1 ether;
+        
+        WithdrawFinished();
     }
 
     // Payable contracts need an empty, parameter-less function
