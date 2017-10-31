@@ -88,8 +88,22 @@ contract Ring {
 
             commonHashList.push(uint256(Message));
             
-            hashx = uint256(sha256(pubKeyx, pubKeyy, Message));
-            (hashx, hashy) = gety(hashx);               
+            hashx = uint256(sha256(pubKeyx, pubKeyy, Message));         
+
+            // Security parameter. P(fail) = 1/(2^k)
+            uint k = 999;
+            uint256 z = FIELD_ORDER + 1;
+            z = z / 4;
+
+            for (i = 0; i < k; i++) {
+                uint256 beta = addmod(mulmod(mulmod(hashx, hashx, FIELD_ORDER), hashx, FIELD_ORDER), 7, FIELD_ORDER);
+                hashy = expMod(beta, z, FIELD_ORDER);
+                if (beta == mulmod(hashy, hashy, FIELD_ORDER)) {
+                    return;
+                }
+                
+                hashx = (hashx + 1) % FIELD_ORDER;
+            }            
         }
     } 
     
