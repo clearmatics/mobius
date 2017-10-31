@@ -127,9 +127,12 @@ contract Ring {
 
         // Form H(R||m)
         uint csum = 0;
+
+        uint lhsx; 
+        uint lhsy;
         
-        uint rx;
-        uint ry;
+        uint rhsx; 
+        uint rhsy;     
    
         for (i = 0; i < Participants; i++) {          
             /* fieldJacobianToBigAffine `normalizes' values before returning -
@@ -137,14 +140,20 @@ contract Ring {
 
             uint cj = ctlist[2*i];
             uint tj = ctlist[2*i+1];      
-       
-            (rx, ry) = compute(GX, GY, pubKeyx[i], pubKeyy[i], tj, cj);
-            hashList.push(rx);
-            hashList.push(ry);            
+
+            (lhsx, lhsy) = ecMul(GX, GY, tj);
+            (rhsx, rhsy) = ecMul(pubKeyx[i], pubKeyy[i], cj);
+            (lhsx, lhsy) = ecAdd(lhsx, lhsy, rhsx, rhsy);                        
             
-            (rx, ry) = compute(hashx, hashy, tagx, tagy, tj, cj);
-            hashList.push(rx);
-            hashList.push(ry);
+            hashList.push(lhsx);
+            hashList.push(lhsy);            
+
+            (lhsx, lhsy) = ecMul(hashx, hashy, tj);
+            (rhsx, rhsy) = ecMul(tagx, tagy, cj);
+            (lhsx, lhsy) = ecAdd(lhsx, lhsy, rhsx, rhsy);               
+            
+            hashList.push(lhsx);
+            hashList.push(lhsy);  
            
             csum = addmod(csum, cj, GEN_ORDER);
         }
@@ -184,39 +193,6 @@ contract Ring {
         // Signature didn't verify
         BadSignature();
     } 
-
-    function compute(uint ax, uint ay, uint bx, uint by, uint tj, uint cj) private constant returns (uint256 resultX, uint256 resultY) {
-        uint lhsx; 
-        uint lhsy;
-        
-        uint rhsx; 
-        uint rhsy;     
-    
-        // t.a
-        (lhsx, lhsy) = ecMul(ax, ay, tj);
-        
-        // c.y (= xc.g)
-        (rhsx, rhsy) = ecMul(bx, by, cj);
-      
-        // Construct t.G + c.Y
-        (resultX, resultY) = ecAdd(lhsx, lhsy, rhsx, rhsy);    
-    } 
-    
-    function gety(uint256 x) private constant returns (uint256 y, uint256) {
-        // Security parameter. P(fail) = 1/(2^k)
-        uint k = 999;
-        uint256 z = FIELD_ORDER + 1;
-        z = z / 4;
-
-        for (uint i = 0; i < k; i++) {
-            uint256 beta = addmod(mulmod(mulmod(x, x, FIELD_ORDER), x, FIELD_ORDER), 7, FIELD_ORDER);
-            y = expMod(beta, z, FIELD_ORDER);
-            if (beta == mulmod(y, y, FIELD_ORDER)) {
-                return (x, y);
-            }
-            x = (x + 1) % FIELD_ORDER;
-        }
-    }     
     
     event RingMessage(
         bytes32 message
