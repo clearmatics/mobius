@@ -37,7 +37,7 @@ contract Ring {
     }
     
     function deposit(uint256 pubx, uint256 puby) public payable {
-        // Throw if no message chosen7
+        // Throw if no message chosen
         if (Started != true) {
             revert();
         }
