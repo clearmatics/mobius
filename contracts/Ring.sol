@@ -11,7 +11,7 @@ contract Ring {
         Participants = participants;
         PaymentAmount = payments * 1 ether;
         
-        WithdrawFinished();
+        AvailableForDeposit();
     }
 
     // Payable contracts need an empty, parameter-less function
@@ -150,6 +150,7 @@ contract Ring {
                     delete tagList;
                     
                     WithdrawFinished();
+                    AvailableForDeposit();
                 }
                 return;
             } else {
@@ -224,6 +225,7 @@ contract Ring {
         uint y
     );
 
+    event AvailableForDeposit();
     event BadSignature();
     event WithdrawEvent();
     event WithdrawReady();
