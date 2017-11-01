@@ -37,7 +37,7 @@ contract Ring {
     }
     
     function deposit(uint256 pubx, uint256 puby) public payable {
-        // Throw if no message chosen
+        // Throw if no message chosen7
         if (Started != true) {
             revert();
         }
@@ -162,7 +162,7 @@ contract Ring {
         BadSignature();
     } 
 
-    function compute(uint ax, uint ay, uint bx, uint by, uint tj, uint cj) private constant returns (uint256 resultX, uint256 resultY) {
+    function compute(uint ax, uint ay, uint bx, uint by, uint tj, uint cj) private pure returns (uint256 resultX, uint256 resultY) {
         uint lhsx; 
         uint lhsy;
         
@@ -179,7 +179,7 @@ contract Ring {
         (resultX, resultY) = ecAdd(lhsx, lhsy, rhsx, rhsy);    
     }
     
-    function precalculateWithdrawValues() {
+    function precalculateWithdrawValues() private {
         for (uint i = 0; i < Participants; i++) {
             commonHashList.push(pubKeyx[i]);
         }
@@ -195,7 +195,7 @@ contract Ring {
     }
      
     
-    function gety(uint256 x) private constant returns (uint256 y, uint256) {
+    function gety(uint256 x) private pure returns (uint256 y, uint256) {
         // Security parameter. P(fail) = 1/(2^k)
         uint k = 999;
         uint256 z = FIELD_ORDER + 1;
@@ -273,7 +273,7 @@ contract Ring {
         uint256 x1, 
         uint256 z1, 
         uint256 x2, 
-        uint256 z2) private constant 
+        uint256 z2) private pure 
         returns(uint256 x3, uint256 z3) 
     {
         (x3, z3) = (addmod(mulmod(z2, x1, Q_CONSTANT), mulmod(x2, z1, Q_CONSTANT), Q_CONSTANT), mulmod(z1, z2, Q_CONSTANT) );
@@ -283,7 +283,7 @@ contract Ring {
         uint256 x1,
         uint256 z1,
         uint256 x2, 
-        uint256 z2) private constant 
+        uint256 z2) private pure  
         returns(uint256 x3, uint256 z3)
     {
         (x3, z3) = ( addmod(mulmod(z2, x1, Q_CONSTANT), mulmod(Q_CONSTANT - x2, z1, Q_CONSTANT), Q_CONSTANT), mulmod(z1, z2 , Q_CONSTANT) );
@@ -293,7 +293,7 @@ contract Ring {
         uint256 x1,
         uint256 z1,
         uint256 x2,
-        uint256 z2) private constant 
+        uint256 z2) private pure  
         returns(uint256 x3, uint256 z3)
     {
         (x3, z3) = (mulmod(x1, x2, Q_CONSTANT), mulmod(z1, z2, Q_CONSTANT));
@@ -303,13 +303,13 @@ contract Ring {
         uint256 x1,
         uint256 z1,
         uint256 x2, 
-        uint256 z2) private constant 
+        uint256 z2) private pure  
         returns(uint256 x3, uint256 z3)
     {
         (x3, z3) = (mulmod(x1, z2, Q_CONSTANT), mulmod(z1, x2, Q_CONSTANT));
     }
 
-    function inverse(uint256 element) private constant //inverts an element, a, of the finite field
+    function inverse(uint256 element) private pure //inverts an element, a, of the finite field
         returns(uint256 inva)
     {
         uint256 t = 0;
@@ -332,7 +332,7 @@ contract Ring {
         uint256 z1,
         uint256 x2, 
         uint256 y2, 
-        uint256 z2) private constant
+        uint256 z2) private pure
         returns(uint256 x3, uint256 y3, uint256 z3)
     {
         uint256 ly;
@@ -380,7 +380,7 @@ contract Ring {
         }
     }
 
-    function _ecDouble(uint256 x1, uint256 y1, uint256 z1) private constant
+    function _ecDouble(uint256 x1, uint256 y1, uint256 z1) private pure
         returns(uint256 x3,uint256 y3,uint256 z3)
     {
         (x3, y3, z3) = _ecAdd(x1, y1, z1, x1, y1, z1);
@@ -390,7 +390,7 @@ contract Ring {
         uint256 d,
         uint256 x1,
         uint256 y1,
-        uint256 z1) private constant
+        uint256 z1) private pure
         returns(uint256 x3, uint256 y3, uint256 z3)
     {
         uint256 remaining = d;
@@ -418,7 +418,7 @@ contract Ring {
         (x3, y3, z3) = (acx, acy, acz);
     }
 
-    function ecMul(uint256 ax, uint256 ay, uint256 k) private constant
+    function ecMul(uint256 ax, uint256 ay, uint256 k) private pure
         returns(uint256 px, uint256 py) 
     {
         // With a priv key, B pub key, this computes aB.
@@ -436,7 +436,7 @@ contract Ring {
         uint256 ax, 
         uint256 ay, 
         uint256 bx, 
-        uint256 by) private constant
+        uint256 by) private pure
         returns(uint256 px, uint256 py)
     {
         uint256 x;
@@ -448,7 +448,7 @@ contract Ring {
         py = mulmod(y, z, Q_CONSTANT);
     }
 
-    function expMod(uint256 base, uint256 e, uint256 m) private constant returns (uint256 o) {
+    function expMod(uint256 base, uint256 e, uint256 m) private pure returns (uint256 o) {
         if (base == 0) {
             return 0;
         }

@@ -1860,9 +1860,9 @@ sntp@1.x.x:
   dependencies:
     hoek "2.x.x"
 
-solc@0.4.15:
-  version "0.4.15"
-  resolved "https://registry.yarnpkg.com/solc/-/solc-0.4.15.tgz#8ae8f1606a124a3f81c28b9dcecb0964ebdf9f25"
+solc@0.4.18:
+  version "0.4.18"
+  resolved "https://registry.yarnpkg.com/solc/-/solc-0.4.18.tgz#83ac6d871dd16a9710e67dbb76dad7f614100702"
   dependencies:
     fs-extra "^0.30.0"
     memorystream "^0.3.1"
@@ -2035,13 +2035,13 @@ tough-cookie@~2.3.0:
   dependencies:
     punycode "^1.4.1"
 
-truffle@^3.4.11:
-  version "3.4.11"
-  resolved "https://registry.yarnpkg.com/truffle/-/truffle-3.4.11.tgz#c4aa12bd512c741a0fd2f6e922e6cd69cda97acb"
+truffle@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/truffle/-/truffle-4.0.0.tgz#3ad24db6b42465f33f09e402c04eb4f1d3585fb2"
   dependencies:
     mocha "^3.4.2"
     original-require "^1.0.1"
-    solc "0.4.15"
+    solc "0.4.18"
 
 tty-browserify@0.0.0:
   version "0.0.0"
