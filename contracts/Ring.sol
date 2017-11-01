@@ -11,7 +11,8 @@ contract Ring {
         Participants = participants;
         PaymentAmount = payments * 1 ether;
         
-        AvailableForDeposit();
+        // Broadcast the ring is available      
+        AvailableForDeposit();   
     }
 
     // Payable contracts need an empty, parameter-less function
@@ -33,7 +34,7 @@ contract Ring {
         Message = bytes32(0x50b44f86159783db5092ebe77fb4b9cc29e445e54db17f0e8d2bed4eb63126fc);
 
         // Broadcast the message for the newly started ring
-        RingMessage(Message);
+        RingMessage(Message);     
     }
     
     function deposit(uint256 pubx, uint256 puby) public payable {
