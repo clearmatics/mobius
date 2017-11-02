@@ -2,7 +2,7 @@
   "name": "mobius-truffle",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "git@gitlab.clearmatics.net:oss/mobius-truffle.git",
+  "repository": "https://github.com/clearmatics/mobius.git",
   "author": "clearmatics@clearmatics.com",
   "license": "MIT",
   "dependencies": {
