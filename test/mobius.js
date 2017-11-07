@@ -34,14 +34,15 @@ contract('Ring', (accounts) => {
         Ring.deployed().then((instance) => {
             const depositValue = 1;
             const owner = accounts[0];
-            const txObj = { from: owner, value: web3.toWei(depositValue, 'ether') };
+            const txValue = web3.toWei(depositValue, 'ether');
+            const txObj = { from: owner, value: txValue };
             
             const txPromises = inputDataDeposit.reduce((prev, data) => {
                 const pubPosX = data[0];
                 const pubPosY = data[1];
                 
                 const executeDeposit = () => {
-                    return instance.deposit(pubPosX, pubPosY, txObj)
+                    return instance.deposit(pubPosX, pubPosY, txValue, txObj)
                         .then(result => {
                             const txObj = web3.eth.getTransaction(result.tx);
                             const receiptStr = JSON.stringify(result,null,'\t');

@@ -5,12 +5,53 @@
 
 pragma solidity ^0.4.2;
 
+// ERC Token Standard #20 Interface
+// https://github.com/ethereum/EIPs/issues/20
+contract ERC20Interface {
+    // Get the total token supply
+    function totalSupply() public constant returns (uint256 totalSupplyVal);
 
-contract Ring {
-    function Ring(uint participants, uint payments) public {
+    // Get the account balance of another account with address _owner
+    function balanceOf(address _owner) public constant returns (uint256 balance);
+
+    // Send _value amount of tokens to address _to
+    function transfer(address _to, uint256 _value) public returns (bool success);
+
+    // Send _value amount of tokens from address _from to address _to
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success);
+
+    // Allow _spender to withdraw from your account, multiple times, up to the _value amount.
+    // If this function is called again it overwrites the current allowance with _value.
+    // this function is required for some DEX functionality
+    function approve(address _spender, uint256 _value) public returns (bool success);
+
+    // Returns the amount which _spender is still allowed to withdraw from _owner
+    function allowance(address _owner, address _spender) public constant returns (uint256 remaining);
+
+    // Triggered when tokens are transferred.
+    event Transfer(address indexed _from, address indexed _to, uint256 _value);
+
+    // Triggered whenever approve(address _spender, uint256 _value) is called.
+    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
+}
+
+
+contract Ring{
+    function Ring(uint participants, uint payments, address token) public {
         Participants = participants;
-        PaymentAmount = payments * 1 ether;
         
+        if (token == 0) {
+            UsingToken = false;
+
+            PaymentAmount = payments * 1 ether;
+            
+        } else {
+            UsingToken = true;
+        
+            PaymentAmount = payments;
+            Token = ERC20Interface(token);
+        }
+       
         // Broadcast the ring is available      
         AvailableForDeposit();   
     }
@@ -37,7 +78,7 @@ contract Ring {
         RingMessage(Message);     
     }
     
-    function deposit(uint256 pubx, uint256 puby) public payable {
+    function deposit(uint256 pubx, uint256 puby, uint256 value) public payable {
         // Throw if no message chosen
         if (Started != true) {
             revert();
@@ -46,11 +87,13 @@ contract Ring {
         // Throw if ring already full
         if (pubKeyx.length >= Participants) {
             revert();
-        }
-
-        // Throw if incorrect value sent
-        if (msg.value != PaymentAmount) {
-            revert();
+        } 
+        
+        // Throw if the sender does not have the funds
+        if ((!UsingToken) && (msg.value != PaymentAmount)) {
+             revert();       
+        } else if ((UsingToken) && (value > PaymentAmount)) {
+             revert();        
         }
 
         // Throw if participant is already in this ring -- accepting would lock
@@ -69,7 +112,11 @@ contract Ring {
         // Checking y^2 = x^3 + 7 is sufficient as only integers exist in solidity
         if (addmod(xcubed, 7, FIELD_ORDER) != mulmod(puby, puby, FIELD_ORDER)) {
             revert();
-        }
+        }       
+        
+        if (UsingToken) {
+            Token.transferFrom(msg.sender, this, value);
+        }    
 
         // If all the above are satisfied, add to ring :)
         pubKeyx.push(pubx);
@@ -165,7 +212,14 @@ contract Ring {
         delete hashList;
                 
         if (hashout == csum) {
-            bool output = msg.sender.send(PaymentAmount);
+            bool output = false;
+            
+            if (UsingToken) {            
+                output = Token.transferFrom(this, msg.sender, PaymentAmount);
+            } else {
+                output = msg.sender.send(PaymentAmount);
+            }
+            
             if (output == true) {
                 // Signature and send successful 
                 tagList.push(tagx);
@@ -245,6 +299,10 @@ contract Ring {
     
     // Withdrawl tags    
     uint[] private tagList;
+
+    // Token to use
+    bool private UsingToken;
+    ERC20Interface private Token;
 
     //
     // ECLib   
