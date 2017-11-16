@@ -86,7 +86,11 @@ contract Ring{
         }       
         
         if (UsingToken) {
-            Token.transferFrom(msg.sender, this, value);
+            bool success = Token.transferFrom(msg.sender, this, value);
+            
+            if (success != true) {
+                revert();            
+            }
         }    
 
         // If all the above are satisfied, add to ring :)
