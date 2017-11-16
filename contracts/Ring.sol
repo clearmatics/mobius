@@ -14,7 +14,7 @@ contract Ring{
         if (token == 0) {
             UsingToken = false;
 
-            PaymentAmount = payments * 1 ether;
+            PaymentAmount = payments;
             
         } else {
             UsingToken = true;
@@ -187,7 +187,7 @@ contract Ring{
         delete hashList;
                 
         if (hashout == csum) {
-            bool output = false;
+            bool output;
             
             if (UsingToken) {            
                 output = Token.transferFrom(this, msg.sender, PaymentAmount);
