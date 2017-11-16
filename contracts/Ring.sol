@@ -63,7 +63,7 @@ contract Ring{
         // Throw if the sender does not have the funds
         if ((!UsingToken) && (msg.value != PaymentAmount)) {
              revert();       
-        } else if ((UsingToken) && (value > PaymentAmount)) {
+        } else if ((UsingToken) && (value != PaymentAmount)) {
              revert();        
         }
 
