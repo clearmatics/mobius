@@ -67,7 +67,7 @@ contract('Ring', (accounts) => {
     it('Withdraw from the ring', (done) => {
         Ring.deployed().then((instance) => {
             const owner = accounts[0];
-            const txObj = { from: owner, gas: 16000000 };
+            const txObj = { from: owner, gas: 160000000 };
             
             const txPromises = inputDataWithdraw.reduce((prev, data) => {
                 const pubPosX = data[0];
