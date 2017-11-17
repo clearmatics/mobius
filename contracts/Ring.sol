@@ -5,12 +5,24 @@
 
 pragma solidity ^0.4.2;
 
+import './ERC20.sol';
 
-contract Ring {
-    function Ring(uint participants, uint payments) public {
+contract Ring{
+    function Ring(uint participants, uint payments, address token) public {
         Participants = participants;
-        PaymentAmount = payments * 1 ether;
         
+        if (token == 0) {
+            UsingToken = false;
+
+            PaymentAmount = payments;
+            
+        } else {
+            UsingToken = true;
+        
+            PaymentAmount = payments;
+            Token = ERC20Interface(token);
+        }
+       
         // Broadcast the ring is available      
         AvailableForDeposit();   
     }
@@ -37,7 +49,7 @@ contract Ring {
         RingMessage(Message);     
     }
     
-    function deposit(uint256 pubx, uint256 puby) public payable {
+    function deposit(uint256 pubx, uint256 puby, uint256 value) public payable {
         // Throw if no message chosen
         if (Started != true) {
             revert();
@@ -46,11 +58,13 @@ contract Ring {
         // Throw if ring already full
         if (pubKeyx.length >= Participants) {
             revert();
-        }
-
-        // Throw if incorrect value sent
-        if (msg.value != PaymentAmount) {
-            revert();
+        } 
+        
+        // Throw if the sender does not have the funds
+        if ((!UsingToken) && (msg.value != PaymentAmount)) {
+             revert();       
+        } else if ((UsingToken) && (value != PaymentAmount)) {
+             revert();        
         }
 
         // Throw if participant is already in this ring -- accepting would lock
@@ -69,7 +83,15 @@ contract Ring {
         // Checking y^2 = x^3 + 7 is sufficient as only integers exist in solidity
         if (addmod(xcubed, 7, FIELD_ORDER) != mulmod(puby, puby, FIELD_ORDER)) {
             revert();
-        }
+        }       
+        
+        if (UsingToken) {
+            bool success = Token.transferFrom(msg.sender, this, value);
+            
+            if (success != true) {
+                revert();            
+            }
+        }    
 
         // If all the above are satisfied, add to ring :)
         pubKeyx.push(pubx);
@@ -165,7 +187,14 @@ contract Ring {
         delete hashList;
                 
         if (hashout == csum) {
-            bool output = msg.sender.send(PaymentAmount);
+            bool output;
+            
+            if (UsingToken) {            
+                output = Token.transferFrom(this, msg.sender, PaymentAmount);
+            } else {
+                output = msg.sender.send(PaymentAmount);
+            }
+            
             if (output == true) {
                 // Signature and send successful 
                 tagList.push(tagx);
@@ -245,6 +274,10 @@ contract Ring {
     
     // Withdrawl tags    
     uint[] private tagList;
+
+    // Token to use
+    bool private UsingToken;
+    ERC20Interface private Token;
 
     //
     // ECLib   
