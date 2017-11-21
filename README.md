@@ -20,7 +20,7 @@ Möbius contracts are deployed in the standard way and declare the size of a rin
 
 ## Developing
 
-[Truffle][2] is used to develop and test the Möbius Smart Contract. This has a dependency of [Node.js][3].
+[Truffle][2] is used to develop and test the Möbius Smart Contract. This has a dependency of [Node.js][3]. [solidity-coverage ][7] provides code coverage metrics. 
 
 Prerequisites:
 
@@ -60,3 +60,4 @@ After generating the signatures overwrite the [ringSignature.json](test/ringSign
 [4]: https://yarnpkg.com/en/docs/install
 [5]: https://docs.npmjs.com/getting-started/installing-node
 [6]: https://github.com/clearmatics/orbital
+[7]: https://www.npmjs.com/package/solidity-coverage
