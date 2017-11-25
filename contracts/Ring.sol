@@ -3,9 +3,10 @@
 
 // SPDX-License-Identifier: (LGPL-3.0+ AND GPL-3.0)
 
-pragma solidity ^0.4.2;
+pragma solidity ^0.4.18;
 
 import './ERC20.sol';
+import './bn256g1.sol';
 
 contract Ring{
     function Ring(uint participants, uint payments, address token) public {
@@ -132,7 +133,7 @@ contract Ring{
         }
     } 
     
-    function withdraw(uint tagx, uint tagy, uint[] ctlist) public {
+    function withdraw(uint256 tagx, uint256 tagy, uint[] ctlist) public {
         // Throw if ring hasn't been started
         if (Started != true) {
             revert();
@@ -153,32 +154,23 @@ contract Ring{
         // Form H(R||m)
         uint csum = 0;
 
-        uint lhsx; 
-        uint lhsy;
-        
-        uint rhsx; 
-        uint rhsy;     
    
         for (i = 0; i < Participants; i++) {          
-            /* fieldJacobianToBigAffine `normalizes' values before returning -
-            normalize uses fast reduction on special form of secp256k1's prime! */ 
+            uint256 cj = ctlist[2*i];
+            uint256 tj = ctlist[2*i+1];      
 
-            uint cj = ctlist[2*i];
-            uint tj = ctlist[2*i+1];      
+            bn256g1.Point memory y = bn256g1.Point(pubKeyx[i], pubKeyy[i]);
+            bn256g1.Point memory yc = bn256g1.ScalarMult(y, cj); // y^c = G^(xc)
+            bn256g1.Point memory Gt = bn256g1.ScalarBaseMult(tj); // G^t
+            Gt = bn256g1.PointAdd(Gt, yc); // == G^t + y^c
+            hashList.push(Gt.X);
+            hashList.push(Gt.Y);
 
-            (lhsx, lhsy) = ecMul(GX, GY, tj);
-            (rhsx, rhsy) = ecMul(pubKeyx[i], pubKeyy[i], cj);
-            (lhsx, lhsy) = ecAdd(lhsx, lhsy, rhsx, rhsy);                        
-            
-            hashList.push(lhsx);
-            hashList.push(lhsy);            
-
-            (lhsx, lhsy) = ecMul(hashx, hashy, tj);
-            (rhsx, rhsy) = ecMul(tagx, tagy, cj);
-            (lhsx, lhsy) = ecAdd(lhsx, lhsy, rhsx, rhsy);               
-            
-            hashList.push(lhsx);
-            hashList.push(lhsy);  
+            bn256g1.Point memory tauc = bn256g1.ScalarMult(bn256g1.Point(tagx, tagy), cj);
+            bn256g1.Point memory H = bn256g1.ScalarMult(bn256g1.Point(hashx, hashy), tj); //H(m||R)^t
+            H = bn256g1.PointAdd(H, tauc);            
+            hashList.push(H.X);
+            hashList.push(H.Y);
            
             csum = addmod(csum, cj, GEN_ORDER);
         }
@@ -246,11 +238,6 @@ contract Ring{
     event WithdrawReady();
     event WithdrawFinished();
 
-    uint constant FIELD_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
-    uint constant GEN_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
-    uint constant GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798;
-    uint constant GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8;
- 
     // Number of participants chosen by the party deploying contract.
     uint public Participants;
     
@@ -279,224 +266,26 @@ contract Ring{
     bool private UsingToken;
     ERC20Interface private Token;
 
-    //
-    // ECLib   
-    //
 
-    // The following code is taken from Jordi Baylina's ecsol library.
-    // (<https://github.com/jbaylina/ecsol>).  This code is distributed
-    // under the GNU General Public License version 3.
+    // Builtins
 
-    // Copyright (C) 2016 Jordi Baylina
 
-    function _jAdd(
-        uint256 x1, 
-        uint256 z1, 
-        uint256 x2, 
-        uint256 z2) private pure 
-        returns(uint256 x3, uint256 z3) 
+    function expMod(uint256 _base, uint256 _exponent, uint256 _modulus)
+        public constant returns (uint256 retval)
     {
-        (x3, z3) = (addmod(mulmod(z2, x1, Q_CONSTANT), mulmod(x2, z1, Q_CONSTANT), Q_CONSTANT), mulmod(z1, z2, Q_CONSTANT) );
+        bool success;
+        uint[3] memory input;
+        input[0] = _base;
+        input[1] = _exponent;
+        input[2] = _modulus;
+        assembly {
+            success := call(sub(gas, 2000), 5, 0, input, 0x60, retval, 0x20)
+            // Use "invalid" to make gas estimation work
+            switch success case 0 { invalid }
+        }
+        require(success);
     }
 
-    function _jSub(
-        uint256 x1,
-        uint256 z1,
-        uint256 x2, 
-        uint256 z2) private pure  
-        returns(uint256 x3, uint256 z3)
-    {
-        (x3, z3) = ( addmod(mulmod(z2, x1, Q_CONSTANT), mulmod(Q_CONSTANT - x2, z1, Q_CONSTANT), Q_CONSTANT), mulmod(z1, z2 , Q_CONSTANT) );
-    }
 
-    function _jMul(
-        uint256 x1,
-        uint256 z1,
-        uint256 x2,
-        uint256 z2) private pure  
-        returns(uint256 x3, uint256 z3)
-    {
-        (x3, z3) = (mulmod(x1, x2, Q_CONSTANT), mulmod(z1, z2, Q_CONSTANT));
-    }
-
-    function _jDiv(
-        uint256 x1,
-        uint256 z1,
-        uint256 x2, 
-        uint256 z2) private pure  
-        returns(uint256 x3, uint256 z3)
-    {
-        (x3, z3) = (mulmod(x1, z2, Q_CONSTANT), mulmod(z1, x2, Q_CONSTANT));
-    }
-
-    function inverse(uint256 element) private pure //inverts an element, a, of the finite field
-        returns(uint256 inva)
-    {
-        uint256 t = 0;
-        uint256 newT = 1;
-        uint256 r = Q_CONSTANT;
-        uint256 newR = element;
-        uint256 p;
-        while (newR != 0) {
-            p = r / newR;
-            (t, newT) = (newT, addmod(t, (Q_CONSTANT - mulmod(p, newT, Q_CONSTANT)), Q_CONSTANT));
-            (r, newR) = (newR, r - p * newR);
-        }
-
-        return t;
-    }
-
-    function _ecAdd(
-        uint256 x1, 
-        uint256 y1, 
-        uint256 z1,
-        uint256 x2, 
-        uint256 y2, 
-        uint256 z2) private pure
-        returns(uint256 x3, uint256 y3, uint256 z3)
-    {
-        uint256 ly;
-        uint256 lz;
-        uint256 da;
-        uint256 db;
-
-        if ((x1 == 0) && (y1 == 0)) {
-            // 0 + P = P
-            return (x2, y2, z2);
-        }
-
-        if ((x2 == 0) && (y2 == 0)) {
-            // P + 0 = P
-            return (x1, y1, z1);
-        }
-
-        if ((x1 == x2) && (y1 == y2)) {
-            // P + P = 2P
-            (ly, lz) = _jMul(x1, z1, x1, z1);
-            (ly, lz) = _jMul(ly, lz, 3, 1);
-            (ly, lz) = _jAdd(ly, lz, A_CONSTANT, 1);
-            (da, db) = _jMul(y1, z1, 2, 1);
-        } else {
-            (ly, lz) = _jSub(y2, z2, y1, z1);
-            (da, db)  = _jSub(x2, z2, x1, z1);
-        }
-
-        (ly, lz) = _jDiv(ly, lz, da, db);
-
-        (x3, da) = _jMul(ly, lz, ly, lz);
-        (x3, da) = _jSub(x3, da, x1, z1);
-        (x3, da) = _jSub(x3, da, x2, z2);
-
-        (y3, db) = _jSub(x1, z1, x3, da);
-        (y3, db) = _jMul(y3, db, ly, lz);
-        (y3, db) = _jSub(y3, db, y1, z1);
-
-        if (da != db) {
-            x3 = mulmod(x3, db, Q_CONSTANT);
-            y3 = mulmod(y3, da, Q_CONSTANT);
-            z3 = mulmod(da, db, Q_CONSTANT);
-        } else {
-            z3 = da;
-        }
-    }
-
-    function _ecDouble(uint256 x1, uint256 y1, uint256 z1) private pure
-        returns(uint256 x3,uint256 y3,uint256 z3)
-    {
-        (x3, y3, z3) = _ecAdd(x1, y1, z1, x1, y1, z1);
-    }
-
-    function _ecMul(
-        uint256 d,
-        uint256 x1,
-        uint256 y1,
-        uint256 z1) private pure
-        returns(uint256 x3, uint256 y3, uint256 z3)
-    {
-        uint256 remaining = d;
-        uint256 px = x1;
-        uint256 py = y1;
-        uint256 pz = z1;
-        uint256 acx = 0;
-        uint256 acy = 0;
-        uint256 acz = 1;
-
-        // 0P = 0
-        if (d == 0) {
-            return (0, 0, 1);
-        }
-
-        // For d =/= 0, use double and add
-        while (remaining != 0) {
-            if ((remaining & 1) != 0) {
-                (acx, acy, acz) = _ecAdd(acx, acy, acz, px, py, pz);
-            }
-            remaining = remaining / 2;
-            (px, py, pz) = _ecDouble(px, py, pz);
-        }
-
-        (x3, y3, z3) = (acx, acy, acz);
-    }
-
-    function ecMul(uint256 ax, uint256 ay, uint256 k) private pure
-        returns(uint256 px, uint256 py) 
-    {
-        // With a priv key, B pub key, this computes aB.
-        // Then other party can compute bA and you've got your shared secret set up :)
-        uint256 x;
-        uint256 y;
-        uint256 z;
-        (x, y, z) = _ecMul(k, ax, ay, 1);
-        z = inverse(z);
-        px = mulmod(x, z, Q_CONSTANT);
-        py = mulmod(y, z, Q_CONSTANT);
-    }
-
-    function ecAdd(
-        uint256 ax, 
-        uint256 ay, 
-        uint256 bx, 
-        uint256 by) private pure
-        returns(uint256 px, uint256 py)
-    {
-        uint256 x;
-        uint256 y;
-        uint256 z;
-        (x, y, z) = _ecAdd(ax, ay, 1, bx, by, 1);
-        z = inverse(z);
-        px = mulmod(x, z, Q_CONSTANT);
-        py = mulmod(y, z, Q_CONSTANT);
-    }
-
-    function expMod(uint256 base, uint256 e, uint256 m) private pure returns (uint256 o) {
-        if (base == 0) {
-            return 0;
-        }
-        
-        if (e == 0) {
-            return 1;
-        }
-        
-        if (m == 0) {
-            revert();
-        }
-        
-        o = 1;
-        uint256 bit = 2 ** 255;
-        
-        while (bit > 0) {        
-            assembly {
-                // Loop unrolling for optimisation!!!
-                o := mulmod(mulmod(o, o, m), exp(base, iszero(iszero(and(e, bit)))), m)
-                o := mulmod(mulmod(o, o, m), exp(base, iszero(iszero(and(e, div(bit, 2))))), m)
-                o := mulmod(mulmod(o, o, m), exp(base, iszero(iszero(and(e, div(bit, 4))))), m)
-                o := mulmod(mulmod(o, o, m), exp(base, iszero(iszero(and(e, div(bit, 8))))), m)
-                bit := div(bit, 16)
-            }
-        }
-    }
-  
-    uint256 constant Q_CONSTANT = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
-    uint256 constant A_CONSTANT = 0;
 }
 
