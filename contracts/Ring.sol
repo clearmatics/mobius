@@ -79,10 +79,10 @@ contract Ring{
         // Throw if submitted pubkey not a valid point on curve
         // Accepting would lock money in the contract forever -- there would
         // be no private key with which to generate the signature to release it
-        uint xcubed = mulmod(mulmod(pubx, pubx, FIELD_ORDER), pubx, FIELD_ORDER);
+        uint xcubed = mulmod(mulmod(pubx, pubx, bn256g1.Order()), pubx, bn256g1.Order());
 
-        // Checking y^2 = x^3 + 7 is sufficient as only integers exist in solidity
-        if (addmod(xcubed, 7, FIELD_ORDER) != mulmod(puby, puby, FIELD_ORDER)) {
+        // Checking y^2 = x^3 + 3 is sufficient as only integers exist in solidity
+        if (addmod(xcubed, 3, bn256g1.Order()) != mulmod(puby, puby, bn256g1.Order())) {
             revert();
         }       
         
@@ -118,17 +118,16 @@ contract Ring{
 
             // Security parameter. P(fail) = 1/(2^k)
             uint k = 999;
-            uint256 z = FIELD_ORDER + 1;
+            uint256 z = bn256g1.Order() + 1;
             z = z / 4;
-
             for (i = 0; i < k; i++) {
-                uint256 beta = addmod(mulmod(mulmod(hashx, hashx, FIELD_ORDER), hashx, FIELD_ORDER), 7, FIELD_ORDER);
-                hashy = expMod(beta, z, FIELD_ORDER);
-                if (beta == mulmod(hashy, hashy, FIELD_ORDER)) {
+                uint256 beta = addmod(mulmod(mulmod(hashx, hashx, bn256g1.Order()), hashx, bn256g1.Order()), 3, bn256g1.Order());
+                hashy = expMod(beta, z, bn256g1.Order());
+                if (beta == mulmod(hashy, hashy, bn256g1.Order())) {
                     return;
                 }
                 
-                hashx = (hashx + 1) % FIELD_ORDER;
+                hashx = (hashx + 1) % bn256g1.Order();
             }            
         }
     } 
@@ -154,7 +153,6 @@ contract Ring{
         // Form H(R||m)
         uint csum = 0;
 
-   
         for (i = 0; i < Participants; i++) {          
             uint256 cj = ctlist[2*i];
             uint256 tj = ctlist[2*i+1];      
@@ -172,10 +170,10 @@ contract Ring{
             hashList.push(H.X);
             hashList.push(H.Y);
            
-            csum = addmod(csum, cj, GEN_ORDER);
+            csum = addmod(csum, cj, bn256g1.Prime());
         }
 
-        var hashout = uint256(sha256(commonHashList, hashList)) % GEN_ORDER;
+        var hashout = uint256(sha256(commonHashList, hashList)) % bn256g1.Prime();
         delete hashList;
                 
         if (hashout == csum) {
