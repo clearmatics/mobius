@@ -268,22 +268,6 @@ contract Ring{
     // Builtins
 
 
-    function expMod(uint256 _base, uint256 _exponent, uint256 _modulus)
-        public constant returns (uint256 retval)
-    {
-        bool success;
-        uint[3] memory input;
-        input[0] = _base;
-        input[1] = _exponent;
-        input[2] = _modulus;
-        assembly {
-            success := call(sub(gas, 2000), 5, 0, input, 0x60, retval, 0x20)
-            // Use "invalid" to make gas estimation work
-            switch success case 0 { invalid }
-        }
-        require(success);
-    }
-
 
 }
 
