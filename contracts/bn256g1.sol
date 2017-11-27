@@ -33,12 +33,12 @@ library bn256g1 {
     }
 
 
-    function HashToPoint(bytes32 s)
+    function HashToPoint(uint256 s)
     	internal constant returns (Point)
     {
     	uint256 beta = 0;
     	uint256 y = 0;
-    	uint256 x = uint256(s);
+    	uint256 x = s;
 
     	while( true ) {
     		(beta, y) = _findYforX(x);

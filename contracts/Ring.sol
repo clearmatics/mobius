@@ -13,6 +13,7 @@ library Ring
     uint256 public constant RING_SIZE = 4;
 
     struct Data {
+        uint256 guid;
         uint256 denomination;
         address token;
         bn256g1.Point hash;
@@ -22,9 +23,19 @@ library Ring
 
 
     /**
+    * Have all possible tags been used, one for each public key
+    */
+    function IsDead (Data self)
+        internal view returns (bool)
+    {
+        return self.tags.length == self.pubkeys.length;
+    }
+
+
+    /**
     * Does the X component of a Public Key exist?
     */
-    function PubExists (Data self, uint256 pub_x)
+    function PubExists (Data storage self, uint256 pub_x)
         internal view returns (bool)
     {
         for( uint i = 0; i < self.pubkeys.length; i++ ) {
@@ -39,7 +50,7 @@ library Ring
     /**
     * Does the X component of a Tag exist?
     */
-    function TagExists (Data self, uint256 pub_x)
+    function TagExists (Data storage self, uint256 pub_x)
         internal constant returns (bool)
     {
         for( uint i = 0; i < self.tags.length; i++ ) {
@@ -61,19 +72,23 @@ library Ring
     /**
     * Initialise the Ring.Data structure with a token and denomination
     */
-    function Initialize (Data storage self, address token, uint256 denomination)
+    function Initialize (Data storage self, uint256 guid, address token, uint256 denomination)
         internal returns (bool)
     {
+        require( denomination != 0 );
+        require( guid != 0 );
+
         // Denomination indicates Ring.Data struct has been initialized
         if( ! IsInitialized(self) )
             return false;
 
         // Denomination must be positive power of 2, e.g. only 1 bit set
-        if( denomination == 0 || 0 == (msg.value & (msg.value - 1)) )
+        if( 0 == (denomination & (denomination - 1)) )
             return false;
 
-        // TODO: validate whether `token` is a valid ERC223 contract
+        // TODO: validate whether `token` is a valid ERC-223 contract
 
+        self.guid = guid;
         self.token = token;
         self.denomination = denomination;
 
@@ -102,6 +117,7 @@ library Ring
 
         // accepting duplicate public keys would lock money forever
         // as each linkable ring signature allows only one withdrawal
+
         if( PubExists(self, pub_x) )
             return false;
 
@@ -109,33 +125,51 @@ library Ring
         if( ! pub.IsOnCurve() )
             return false;
 
-
-        self.hash.X ^= uint256(sha256(pub.X, pub.Y));
+        // Fill Ring with Public Keys
+        //  R = {h ← H(h, y)}
+        self.hash.X = uint256(sha256(self.hash.X, pub.X, pub.Y));
         self.pubkeys.push(pub);
 
         if( IsFull(self) ) {
-            // TODO: mix-in block height, time, other stuff
-            bytes32 ring_id = sha256(self.token, self.denomination);
-            self.hash = bn256g1.HashToPoint(bytes32(uint256(ring_id) ^ self.hash.X));
+            // h ← H(h, m)
+            self.hash.X = uint256(sha256(self.hash.X, self.token, self.denomination));
+            self.hash = bn256g1.HashToPoint(self.hash.X);
         }
 
         return true;
     }
 
 
-    function _ringLink( uint256 cj, uint256 tj, bn256g1.Point tag, bn256g1.Point hash, bn256g1.Point pub )
+    /**
+    * Generates a hash segment for each public key in the ring
+    *
+    *   a ← g^t + y^c
+    *   b ← h^t + τ^c
+    *
+    * Where:
+    *
+    *   - y is a pubkey in R
+    *   - h is the root hash
+    *   - tau is the tag
+    *   - c is a random
+    *
+    * Each segment is used when verifying the ring:
+    *
+    *   sum({c...}) = H(R, m, τ, {a,b...})
+    */
+    function _ringLink( uint256 previous_hash, uint256 cj, uint256 tj, bn256g1.Point tau, bn256g1.Point h, bn256g1.Point yj )
         internal constant returns (uint256 ho)
     {       
-        // y^c = G^(xc)
-        bn256g1.Point memory yc = pub.ScalarMult(cj);
+        // y^c = g^(xc)
+        bn256g1.Point memory yc = yj.ScalarMult(cj);
 
-        // G^t + y^c
-        bn256g1.Point memory Gt = bn256g1.ScalarBaseMult(tj).PointAdd(yc);
+        // a ← g^t + y^c
+        bn256g1.Point memory a = bn256g1.ScalarBaseMult(tj).PointAdd(yc);
 
-        //H(m||R)^t
-        bn256g1.Point memory H = hash.ScalarMult(tj).PointAdd(tag.ScalarMult(cj));
+        // b ← h^t + τ^c
+        bn256g1.Point memory b = h.ScalarMult(tj).PointAdd(tau.ScalarMult(cj));
 
-        return uint256(sha256(Gt.X, Gt.Y, H.X, H.Y));
+        return uint256(sha256(previous_hash, a.X, a.Y, b.X, b.Y));
     }
 
 
@@ -151,6 +185,9 @@ library Ring
 
     /**
     * Verify whether or not a Ring Signature is valid
+    *
+    * Must call TagAdd(tag_x) after a valid signature, if an existing
+    * tag exists the signature is invalidated to prevent double-spend
     */
     function SignatureValid (Data storage self, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
         internal view returns (bool)
@@ -164,21 +201,20 @@ library Ring
         if( TagExists(self, tag_x) )
             return false;
 
-        bn256g1.Point memory tag = bn256g1.Point(tag_x, tag_y);
-        uint256 hashout = 0; // begin with commonHashList
-        uint csum = 0;
-        uint256 cj;
-        uint256 tj;
+        // h ← H(h, τ)
+        uint256 hashout = uint256(sha256(self.hash.X, tag_x, tag_y));
+        uint256 csum = 0;
 
         for (uint i = 0; i < self.pubkeys.length; i++) {         
-            cj = ctlist[2*i];
-            tj = ctlist[2*i+1];
-            hashout ^= _ringLink(cj, tj, tag, self.hash, self.pubkeys[i]);
+            // h ← H(h, a, b)
+            // sum(c)
+            uint256 cj = ctlist[2*i];
+            uint256 tj = ctlist[2*i+1];
+            hashout = _ringLink(hashout, cj, tj, bn256g1.Point(tag_x, tag_y), self.hash, self.pubkeys[i]);
             csum = addmod(csum, cj, bn256g1.Prime());
         }
 
         hashout %= bn256g1.Prime();
-
         return hashout == csum;
     }
 }
