@@ -23,7 +23,7 @@ library Ring
 
 
     /**
-    * Have all possible tags been used, one for each public key
+    * Have all possible Tags been used, one for each Public Key
     */
     function IsDead (Data self)
         internal view returns (bool)
@@ -33,7 +33,7 @@ library Ring
 
 
     /**
-    * Does the X component of a Public Key exist?
+    * Does the X component of a Public Key exist in the Ring?
     */
     function PubExists (Data storage self, uint256 pub_x)
         internal view returns (bool)
@@ -141,7 +141,7 @@ library Ring
 
 
     /**
-    * Generates a hash segment for each public key in the ring
+    * Generates an ordered hash segment for each public key in the ring
     *
     *   a ← g^t + y^c
     *   b ← h^t + τ^c
@@ -150,7 +150,7 @@ library Ring
     *
     *   - y is a pubkey in R
     *   - h is the root hash
-    *   - tau is the tag
+    *   - τ is the tag
     *   - c is a random
     *
     * Each segment is used when verifying the ring:
@@ -160,7 +160,6 @@ library Ring
     function _ringLink( uint256 previous_hash, uint256 cj, uint256 tj, bn256g1.Point tau, bn256g1.Point h, bn256g1.Point yj )
         internal constant returns (uint256 ho)
     {       
-        // y^c = g^(xc)
         bn256g1.Point memory yc = yj.ScalarMult(cj);
 
         // a ← g^t + y^c
@@ -206,8 +205,8 @@ library Ring
         uint256 csum = 0;
 
         for (uint i = 0; i < self.pubkeys.length; i++) {         
-            // h ← H(h, a, b)
-            // sum(c)
+            // h ← {H(h, a, b)}
+            // sum({c...})
             uint256 cj = ctlist[2*i];
             uint256 tj = ctlist[2*i+1];
             hashout = _ringLink(hashout, cj, tj, bn256g1.Point(tag_x, tag_y), self.hash, self.pubkeys[i]);

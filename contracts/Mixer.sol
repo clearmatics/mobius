@@ -30,11 +30,12 @@ contract Mixer
 
 
     /**
-    * Lookup an unfilled/filling ring for a given token and denomination
-    * This will create a new ring if none exists
+    * Lookup an unfilled/filling ring for a given token and denomination,
+    * this will create a new unfilled ring if none exists. When the ring
+    * is full the 'filling' ring will be deleted.
     */
     function lookupFillingRing (address token, uint256 denomination)
-        internal returns (Ring.Data storage)
+        internal returns (uint256, Ring.Data storage)
     {
         var filling_id = uint256(sha256(token, denomination));
         uint256 ring_guid = m_filling[filling_id];
@@ -54,28 +55,34 @@ contract Mixer
         m_ring_ctr += 1;
         m_filling[filling_id] = ring_guid;
 
-        return ring;
+        return (filling_id, ring);
     }
 
 
     /**
-    * Deposit tokens of a specific denomination which can only be withdrawn by providing
-    * a ring signature of one of the public keys.
+    * Deposit tokens of a specific denomination which can only be withdrawn
+    * by providing a ring signature by one of the public keys.
     */
     function Deposit (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
         public returns (uint256)
     {      
         // TODO: verify token is a valid ERC-223 contract
 
-        Ring.Data storage ring = lookupFillingRing(token, denomination);
+        uint256 filling_id;
+        Ring.Data storage ring;
+        filling_id, ring = lookupFillingRing(token, denomination);
 
         if( ! ring.AddParticipant(pub_x, pub_y) )
             revert();
 
+        // Associate Public X point with Ring GUID
+        // This allows the ring to be recovered with the public key
+        // Without having to monitor/replay the RingDeposit events
         m_pubx_to_ring[pub_x] = ring.guid;
         RingDeposit(ring.guid, pub_x, token, denomination);
 
         if( ring.IsFull() ) {
+            delete m_filling[filling_id];
             RingReady(ring.guid);
         }
 
@@ -83,6 +90,11 @@ contract Mixer
     }
 
 
+    /**
+    * To Withdraw a Token of Denomination from the Ring, one of the Public Keys
+    * must provide a Signature which has a unique Tag. Each Tag can only be used
+    * once.
+    */
     function Withdraw (uint256 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
         public 
     {
@@ -94,12 +106,13 @@ contract Mixer
         if( ! ring.SignatureValid(tag_x, tag_y, ctlist) )
             revert();
 
+        // Tag must be added before withdraw
         ring.TagAdd(tag_x);
+
+        RingWithdraw(ring_id, tag_x, ring.token, ring.denomination);
 
         // TODO: add ERC-223 support
         msg.sender.transfer(ring.denomination);
-        
-        RingWithdraw(ring_id, tag_x, ring.token, ring.denomination);
 
         // When Tags.length == Pubkeys.length, the ring is dead
         // Remove mappings and delete ring
