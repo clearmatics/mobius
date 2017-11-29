@@ -1,22 +1,71 @@
 pragma solidity ^0.4.18;
 
 /**
-* bn256g1 Wraps the BN256 G1 Elliptic Curve functions into a 
-* helpful and consistent library which provides familiar function
+* This module wraps the alt_bn128 G1 Elliptic Curve functions into
+* a helpful and consistent library which provides familiar function
 * names and usage to Elliptic Curve libraries in other languages.
+*
+* This curve is described in the IACR paper 2010/429
+*
+*  - https://eprint.iacr.org/2010/429
+*    A Family of Implementation-Friendly BN Elliptic Curves
+*
+* Specified in the following EIPs:
+*
+*  - https://github.com/ethereum/EIPs/pull/213
+*  - https://github.com/ethereum/EIPs/pull/212
+*
+* The 𝔾1 curve is of the form:
+*
+*   (E_b : y^2 = x^3 + b) over 𝔽_p
+*
+* Where:
+*
+*    p ≡ 3 (mod 4)
+*    b = (c^4 + d^6) or b = (c^6 + 4d^4), for c,d ∈ 𝔽*_p
+*    sqrt(a) = a^((p+1)/4)
+*
+* The 𝔾2 finite field 𝔽_p^2 can be represented as 𝔽_p[i]/(i^2 + 1)
+*
+* The primes `p` (field modulus) and `n` (order) are given by:
+*
+*   p = p(u) = 36u^4 + 36u^3 + 24u^2 + 6u + 1
+*   n = n(u) = 36u^4 + 36u^3 + 18u^2 + 6u + 1
+*
+* The BN field 𝔽_p contains a primitive cube root of unity, this makes
+* it very easy to implement using integer operations.
+*
+* For more details, refer to the IACR paper, we have tried to ensure
+* that the variable names and comments throughout this library make it
+* easier for cryptographers, mathematicians and programmers alike to 
+* use the same terminology across multiple domains without confusion.
+*
+* The parameters used by the ALT_BN128 curve implemented in Ethereum are:
+*
+*   p = 21888242871839275222246405745257275088696311157297823662689037894645226208583
+*   n = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+*   b = 3
+*   u = ???
+*   a = 5472060717959818805561601436314318772174077789324455915672259473661306552146
 */
-library bn256g1 {
-    uint256 internal constant PRIME = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47;
-    uint256 internal constant ORDER = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
+library bn256g1
+{
+    // p = p(u) = 36u^4 + 36u^3 + 24u^2 + 6u + 1
+    uint256 internal constant FIELD_P = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47;
+
+    // n = n(u) = 36u^4 + 36u^3 + 18u^2 + 6u + 1
+    uint256 internal constant ORDER_N = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
+
+    uint256 internal constant CURVE_B = 3;
 
 
     function Order() internal pure returns (uint256) {
-        return ORDER;
+        return ORDER_N;
     }
 
 
-    function Prime() internal pure returns (uint256) {
-        return PRIME;
+    function Field() internal pure returns (uint256) {
+        return FIELD_P;
     }
 
 
@@ -26,11 +75,26 @@ library bn256g1 {
     }
 
 
+    function Infinity ()
+        internal pure returns (Point)
+    {
+        return Point(0, 0);
+    }
+
+
     function Generator ()
         internal pure returns (Point)
     {
         return Point(1, 2);
     }
+
+
+    function Equal(Point a, Point b)
+        internal pure returns (bool)
+    {
+        return a.X == b.X && a.Y == b.Y;
+    }
+
 
     /// @return the negation of p, i.e. p.add(p.negate()) should be zero.
     function Negate(Point p)
@@ -38,36 +102,43 @@ library bn256g1 {
     {
         if (p.X == 0 && p.Y == 0)
             return Point(0, 0);
-        return Point(p.X, PRIME - (p.Y % PRIME));
+        return Point(p.X, FIELD_P - (p.Y % FIELD_P));
     }
 
 
     /**
     * Using a hashed value as the initial starting X point, find the
-    * nearest point on the curve.
-    *
-    * This function does no hashing, you must hash the inputs first.
+    * nearest (X,Y) point on the curve. The input must be hashed first.
     *
     * Example:
     *
     *   HashToPoint(sha256("hello world"))
+    *
+    * This implements the try-and-increment method of hashing a scalar
+    * into a curve point. For more information see:
+    *
+    *  - https://www.normalesup.org/~tibouchi/papers/bnhash-scis.pdf
+    *    A Note on Hashing to BN Curves
+    *
+    *  - https://iacr.org/archive/crypto2009/56770300/56770300.pdf
+    *    How to Hash into Elliptic Curves
     */
-    function HashToPoint(uint256 s)
+    function HashToPoint(bytes32 s)
         internal constant returns (Point)
     {
         uint256 beta = 0;
         uint256 y = 0;
-        uint256 x = s;
+        uint256 x = uint256(s) % ORDER_N;
 
         while( true ) {
             (beta, y) = _findYforX(x);
 
             // y^2 == beta
-            if( beta == mulmod(y, y, ORDER) ) {
+            if( beta == mulmod(y, y, FIELD_P) ) {
                 return Point(x, y);
             }
 
-            x = addmod(x, 1, ORDER);
+            x = addmod(x, 1, FIELD_P);
         }
     }
 
@@ -75,13 +146,13 @@ library bn256g1 {
     function _findYforX(uint256 x)
         internal constant returns (uint256, uint256)
     {
-        // beta = (x^3 + 3) % N
-        uint256 beta = addmod(mulmod(mulmod(x, x, ORDER), x, ORDER), 3, ORDER);
+        // beta = (x^3 + b) % p
+        uint256 beta = addmod(mulmod(mulmod(x, x, FIELD_P), x, FIELD_P), CURVE_B, FIELD_P);
 
-        // y^2 = x^3 + 3
+        // y^2 = x^3 + b
         // So this acts like: y = sqrt(beta)
-        uint256 z = (ORDER + 1) / 4;
-        uint256 y = expMod(beta, z, ORDER);
+        uint256 a = (FIELD_P + 1) / 4;
+        uint256 y = expMod(beta, a, FIELD_P);
 
         return (beta, y);
     }
@@ -97,14 +168,14 @@ library bn256g1 {
     /**
     * Verify if the X and Y coordinates represent a valid Point on the Curve
     *
-    * Where the G1 curve is: x^2 = x^3 + 3
+    * Where the G1 curve is: x^2 = x^3 + b
     */
     function IsOnCurve(Point p)
         internal pure returns (bool)
     {
-        uint256 p_squared = mulmod(p.X, p.X, ORDER);
-        uint256 p_cubed = mulmod(p_squared, p.X, ORDER);
-        return addmod(p_cubed, 3, ORDER) == mulmod(p.Y, p.Y, ORDER);
+        uint256 p_squared = mulmod(p.X, p.X, FIELD_P);
+        uint256 p_cubed = mulmod(p_squared, p.X, FIELD_P);
+        return addmod(p_cubed, CURVE_B, FIELD_P) == mulmod(p.Y, p.Y, FIELD_P);
     }
 
 
@@ -153,7 +224,7 @@ library bn256g1 {
 
 
     function expMod(uint256 _base, uint256 _exponent, uint256 _modulus)
-        public constant returns (uint256 retval)
+        internal constant returns (uint256 retval)
     {
         bool success;
         uint[3] memory input;
@@ -167,5 +238,4 @@ library bn256g1 {
         }
         require(success);
     }
-
 }

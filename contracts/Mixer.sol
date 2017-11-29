@@ -5,7 +5,6 @@
 
 pragma solidity ^0.4.18;
 
-import './bn256g1.sol';
 import './Ring.sol';
 
 contract Mixer
@@ -40,7 +39,7 @@ contract Mixer
         var filling_id = uint256(sha256(token, denomination));
         uint256 ring_guid = m_filling[filling_id];
         if( ring_guid != 0 )
-            return m_rings[ring_guid];
+            return (filling_id, m_rings[ring_guid]);
 
         ring_guid = uint256(sha256(m_ring_ctr, filling_id));
 
@@ -70,7 +69,7 @@ contract Mixer
 
         uint256 filling_id;
         Ring.Data storage ring;
-        filling_id, ring = lookupFillingRing(token, denomination);
+        (filling_id, ring) = lookupFillingRing(token, denomination);
 
         if( ! ring.AddParticipant(pub_x, pub_y) )
             revert();

@@ -51,7 +51,7 @@ library Ring
     * Does the X component of a Tag exist?
     */
     function TagExists (Data storage self, uint256 pub_x)
-        internal constant returns (bool)
+        internal view returns (bool)
     {
         for( uint i = 0; i < self.tags.length; i++ ) {
             if( self.tags[i] == pub_x ) {
@@ -63,7 +63,7 @@ library Ring
 
 
     function IsInitialized (Data storage self)
-        internal returns (bool)
+        internal view returns (bool)
     {
         return self.denomination == 0;
     }
@@ -132,6 +132,9 @@ library Ring
 
         if( IsFull(self) ) {
             // h ← H(h, m)
+            // XXX: this won't be unique, need to mix-in other things
+            //      m = (token, denomination)
+            //      but, m should be (token, denomination, randomentropy?)
             self.hash.X = uint256(sha256(self.hash.X, self.token, self.denomination));
             self.hash = bn256g1.HashToPoint(self.hash.X);
         }
