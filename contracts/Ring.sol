@@ -7,6 +7,43 @@ pragma solidity ^0.4.18;
 import './ERC20.sol';
 import './bn256g1.sol';
 
+
+/**
+* This contract implements the Möbius algorithm as described in the
+* IACR 2017/881 paper by Sarah Meiklejohn and Rebekah Mercer.
+*
+* - https://eprint.iacr.org/2017/881.pdf
+*
+* Abstract:
+* 
+* "Cryptocurrencies allow users to securely transfer money without
+*  relying on a trusted intermediary, and the transparency of their
+*  underlying ledgers also enables public verifiability. This openness,
+*  however, comes at a cost to privacy, as even though the pseudonyms
+*  users go by are not linked to their real-world identities, all
+*  movement of money among these pseudonyms is traceable. In this paper,
+*  we present Möbius, an Ethereum-based tumbler or mixing service. Möbius
+*  achieves strong notions of anonymity, as even malicious senders cannot
+*  identify which pseudonyms belong to the recipients to whom they sent
+*  money, and is able to resist denial-of-service attacks. It also
+*  achieves a much lower off-chain communication complexity than all
+*  existing tumblers, with senders and recipients needing to send only
+*  two initial messages in order to engage in an arbitrary number of
+*  transactions."
+*
+* However, this specific contract introduces the following differences
+* in comparison to the white paper:
+*
+*  - P256k1 replaced with BN256/ALT_BN128 (as per EIP 213)
+*  - The Message signed by Participants has changed
+*  - The Ring contract is now a library
+*  - The Ring Data stores the Token, Denomination and GUID
+*  - Ring size is a fixed size
+*
+* These changes reduce the amount of blockchain storage required,
+* significantly reduces the cost of Withdraw operations and makes the
+* library compatible with arbitrary Ethereum Tokens. 
+*/
 library Ring
 {
     using bn256g1 for bn256g1.Point;
@@ -208,7 +245,7 @@ library Ring
         uint256 csum = 0;
 
         for (uint i = 0; i < self.pubkeys.length; i++) {         
-            // h ← {H(h, a, b)}
+            // h ← H(h, a, b)
             // sum({c...})
             uint256 cj = ctlist[2*i];
             uint256 tj = ctlist[2*i+1];

@@ -7,6 +7,37 @@ pragma solidity ^0.4.18;
 
 import './Ring.sol';
 
+/**
+* Each ring is given a globally unique ID which consist of:
+*
+*  - contract address
+*  - incrementing nonce
+*  - token address
+*  - denomination
+*
+* When a Deposit is made for a specific Token and Denomination 
+* the Mixer will return the Ring GUID. The lifecycle of each Ring
+* can then be monitored using the following events which demarcate
+* the state transitions:
+*
+* RingDeposit
+*   For each Deposit a RingDeposit message is emitted, this includes
+*   the Ring GUID, the X point of the Stealth Address, and the Token
+*   address and Denomination.
+*
+* RingReady
+*   When a Ring is full and withdrawals can be made a RingReady
+*   event is emitted, this includes the Ring GUID and the Message
+*   which must be signed to Withdraw.
+*
+* RingWithdraw
+*   For each Withdraw a RingWithdraw message is emitted, this includes
+*   the Token, Denomination, Ring GUID and Tag of the withdrawer.
+*
+* RingDead
+*   When all participants have withdrawn their tokens from a Ring the
+*   RingDead event is emitted, this specifies the Ring GUID.
+*/
 contract Mixer
 {
     using Ring for Ring.Data;
@@ -19,13 +50,29 @@ contract Mixer
     /** Rings which aren't full yet, H(token,denom) -> ring_id */
     mapping(uint256 => uint256) internal m_filling;
 
+    /** Nonce used to generate Ring Messages */
     uint256 m_ring_ctr;
 
 
-    event RingDeposit( uint256 ring_id, uint256 pub_x, address token, uint256 value );
-    event RingWithdraw( uint256 ring_id, uint256 tag_x, address token, uint256 value );
-    event RingReady( uint256 ring_id );
-    event RingDead( uint256 ring_id );
+    event RingDeposit(
+        uint256 indexed ring_id,
+        uint256 indexed pub_x,
+        address token,
+        uint256 value
+    );
+
+    event RingWithdraw(
+        uint256 indexed ring_id,
+        uint256 tag_x,
+        address token,
+        uint256 value
+    );
+
+    /**
+     */
+    event RingReady( uint256 indexed ring_id, uint256 message );
+
+    event RingDead( uint256 indexed ring_id );
 
 
     /**
@@ -36,14 +83,14 @@ contract Mixer
     function lookupFillingRing (address token, uint256 denomination)
         internal returns (uint256, Ring.Data storage)
     {
+        // The filling ID allows quick lookup for the same Token and Denomination
         var filling_id = uint256(sha256(token, denomination));
         uint256 ring_guid = m_filling[filling_id];
         if( ring_guid != 0 )
             return (filling_id, m_rings[ring_guid]);
 
-        ring_guid = uint256(sha256(m_ring_ctr, filling_id));
-
-        // Ensure ring GUID isn't already in use, just incase
+        // The GUID is unique per Mixer instance, Nonce, Token and Denomination
+        ring_guid = uint256(sha256(address(this), m_ring_ctr, filling_id));
         if( 0 != m_rings[ring_guid].denomination )
             revert();
 
@@ -80,6 +127,8 @@ contract Mixer
         m_pubx_to_ring[pub_x] = ring.guid;
         RingDeposit(ring.guid, pub_x, token, denomination);
 
+        // When full, emit the GUID as the Ring Message
+        // Participants need to sign this Message to Withdraw
         if( ring.IsFull() ) {
             delete m_filling[filling_id];
             RingReady(ring.guid);

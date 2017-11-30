@@ -1,3 +1,7 @@
+// Copyright (c) 2016-2017 Clearmatics Technologies Ltd
+
+// SPDX-License-Identifier: (LGPL-3.0+ AND GPL-3.0)
+
 pragma solidity ^0.4.18;
 
 /**
@@ -21,11 +25,9 @@ pragma solidity ^0.4.18;
 *
 * Where:
 *
-*    p ≡ 3 (mod 4)
-*    b = (c^4 + d^6) or b = (c^6 + 4d^4), for c,d ∈ 𝔽*_p
-*    sqrt(a) = a^((p+1)/4)
-*
-* The 𝔾2 finite field 𝔽_p^2 can be represented as 𝔽_p[i]/(i^2 + 1)
+*   p ≡ 3 (mod 4)
+*   b = 3
+*   sqrt(a) = a^((p+1)/4)
 *
 * The primes `p` (field modulus) and `n` (order) are given by:
 *
@@ -33,7 +35,7 @@ pragma solidity ^0.4.18;
 *   n = n(u) = 36u^4 + 36u^3 + 18u^2 + 6u + 1
 *
 * The BN field 𝔽_p contains a primitive cube root of unity, this makes
-* it very easy to implement using integer operations.
+* it very easy to implement using integer operations on a computer.
 *
 * For more details, refer to the IACR paper, we have tried to ensure
 * that the variable names and comments throughout this library make it
@@ -45,7 +47,6 @@ pragma solidity ^0.4.18;
 *   p = 21888242871839275222246405745257275088696311157297823662689037894645226208583
 *   n = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 *   b = 3
-*   u = ???
 *   a = 5472060717959818805561601436314318772174077789324455915672259473661306552146
 */
 library bn256g1
@@ -57,6 +58,9 @@ library bn256g1
     uint256 internal constant ORDER_N = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
 
     uint256 internal constant CURVE_B = 3;
+
+    // a = (p+1) / 4
+    uint256 internal constant CURVE_A = 0xc19139cb84c680a6e14116da060561765e05aa45a1c72a34f082305b61f3f52;
 
 
     function Order() internal pure returns (uint256) {
@@ -102,6 +106,7 @@ library bn256g1
     {
         if (p.X == 0 && p.Y == 0)
             return Point(0, 0);
+        // TODO: SubMod function?
         return Point(p.X, FIELD_P - (p.Y % FIELD_P));
     }
 
@@ -117,11 +122,11 @@ library bn256g1
     * This implements the try-and-increment method of hashing a scalar
     * into a curve point. For more information see:
     *
-    *  - https://www.normalesup.org/~tibouchi/papers/bnhash-scis.pdf
-    *    A Note on Hashing to BN Curves
-    *
     *  - https://iacr.org/archive/crypto2009/56770300/56770300.pdf
     *    How to Hash into Elliptic Curves
+    *
+    *  - https://www.normalesup.org/~tibouchi/papers/bnhash-scis.pdf
+    *    A Note on Hashing to BN Curves
     */
     function HashToPoint(bytes32 s)
         internal constant returns (Point)
@@ -131,7 +136,7 @@ library bn256g1
         uint256 x = uint256(s) % ORDER_N;
 
         while( true ) {
-            (beta, y) = _findYforX(x);
+            (beta, y) = FindYforX(x);
 
             // y^2 == beta
             if( beta == mulmod(y, y, FIELD_P) ) {
@@ -143,16 +148,22 @@ library bn256g1
     }
 
 
-    function _findYforX(uint256 x)
+    /**
+    * Given X, find Y
+    *
+    *   where y = sqrt(x^3 + b)
+    *
+    * Returns: (x^3 + b), y
+    */
+    function FindYforX(uint256 x)
         internal constant returns (uint256, uint256)
     {
         // beta = (x^3 + b) % p
         uint256 beta = addmod(mulmod(mulmod(x, x, FIELD_P), x, FIELD_P), CURVE_B, FIELD_P);
 
         // y^2 = x^3 + b
-        // So this acts like: y = sqrt(beta)
-        uint256 a = (FIELD_P + 1) / 4;
-        uint256 y = expMod(beta, a, FIELD_P);
+        // this acts like: y = sqrt(beta)
+        uint256 y = expMod(beta, CURVE_A, FIELD_P);
 
         return (beta, y);
     }
@@ -179,6 +190,9 @@ library bn256g1
     }
 
 
+    /**
+    * Multiply the curve generator by a scalar
+    */
     function ScalarBaseMult(uint256 x)
         internal constant returns (Point r)
     {
@@ -227,15 +241,20 @@ library bn256g1
         internal constant returns (uint256 retval)
     {
         bool success;
-        uint[3] memory input;
-        input[0] = _base;
-        input[1] = _exponent;
-        input[2] = _modulus;
+        uint256[1] memory output;
+        uint[6] memory input;
+        input[0] = 0x20;        // baseLen = new(big.Int).SetBytes(getData(input, 0, 32))
+        input[1] = 0x20;        // expLen  = new(big.Int).SetBytes(getData(input, 32, 32))
+        input[2] = 0x20;        // modLen  = new(big.Int).SetBytes(getData(input, 64, 32))
+        input[3] = _base;
+        input[4] = _exponent;
+        input[5] = _modulus;
         assembly {
-            success := call(sub(gas, 2000), 5, 0, input, 0x60, retval, 0x20)
+            success := staticcall(sub(gas, 2000), 5, input, 0xc0, output, 0x20)
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid }
         }
         require(success);
+        return output[0];
     }
 }
