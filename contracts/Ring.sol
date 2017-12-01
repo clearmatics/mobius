@@ -1,11 +1,10 @@
 // Copyright (c) 2016-2017 Clearmatics Technologies Ltd
 
-// SPDX-License-Identifier: (LGPL-3.0+ AND GPL-3.0)
+// SPDX-License-Identifier: LGPL-3.0+
 
 pragma solidity ^0.4.18;
 
-import './ERC20.sol';
-import './bn256g1.sol';
+import {bn256g1 as Curve} from './bn256g1.sol';
 
 
 /**
@@ -34,7 +33,7 @@ import './bn256g1.sol';
 * However, this specific contract introduces the following differences
 * in comparison to the white paper:
 *
-*  - P256k1 replaced with BN256/ALT_BN128 (as per EIP 213)
+*  - P256k1 replaced with ALT_BN128 (as per EIP 213)
 *  - The Message signed by Participants has changed
 *  - The Ring contract is now a library
 *  - The Ring Data stores the Token, Denomination and GUID
@@ -42,30 +41,62 @@ import './bn256g1.sol';
 *
 * These changes reduce the amount of blockchain storage required,
 * significantly reduces the cost of Withdraw operations and makes the
-* library compatible with arbitrary Ethereum Tokens. 
+* library compatible with arbitrary Ethereum Tokens.
+*
+*
+* Initialise Ring (R):
+*
+*   h = H(guid...)
+*   for y in R
+*       h = H(h, y)
+*   m = HashToPoint(h)
+*
+*
+* Verify Signature (S):
+*
+*   c = 0
+*   h = H(m, τ)
+*   for j,c,t in S
+*       y = R[j]
+*       a = g^t + y^c
+*       b = m^t + τ^c
+*       h = H(h, a, b)
+*       csum += c
+*   h == csum
+*
 */
 library Ring
 {
-    using bn256g1 for bn256g1.Point;
+    using Curve for Curve.Point;
     uint256 public constant RING_SIZE = 4;
 
-    struct Data {
-        uint256 guid;
-        uint256 denomination;
-        address token;
-        bn256g1.Point hash;
-        bn256g1.Point[] pubkeys;
+    struct Data {        
+        Curve.Point hash;
+        Curve.Point[] pubkeys;
         uint256[] tags;
     }
 
 
     /**
+    * The message to be signed to withdraw from the ring once it's full
+    */
+    function Message (Data storage self)
+        internal view returns (uint256)
+    {
+        require( ! IsFull(self) );
+
+        return self.hash.X;
+    }
+
+
+    /**
     * Have all possible Tags been used, one for each Public Key
+    * If the ring has not been initialized it is considered Dead.
     */
     function IsDead (Data self)
         internal view returns (bool)
     {
-        return self.tags.length == self.pubkeys.length;
+        return self.hash.X == 0 || (self.tags.length >= RING_SIZE && self.pubkeys.length >= RING_SIZE);
     }
 
 
@@ -102,32 +133,20 @@ library Ring
     function IsInitialized (Data storage self)
         internal view returns (bool)
     {
-        return self.denomination == 0;
+        return self.hash.X != 0;
     }
 
 
     /**
     * Initialise the Ring.Data structure with a token and denomination
     */
-    function Initialize (Data storage self, uint256 guid, address token, uint256 denomination)
+    function Initialize (Data storage self, uint256 guid)
         internal returns (bool)
     {
-        require( denomination != 0 );
         require( guid != 0 );
+        require( self.hash.X == 0 );
 
-        // Denomination indicates Ring.Data struct has been initialized
-        if( ! IsInitialized(self) )
-            return false;
-
-        // Denomination must be positive power of 2, e.g. only 1 bit set
-        if( 0 == (denomination & (denomination - 1)) )
-            return false;
-
-        // TODO: validate whether `token` is a valid ERC-223 contract
-
-        self.guid = guid;
-        self.token = token;
-        self.denomination = denomination;
+        self.hash.X = guid;
 
         return true;
     }
@@ -149,18 +168,14 @@ library Ring
     function AddParticipant (Data storage self, uint256 pub_x, uint256 pub_y)
         internal returns (bool)
     {
-        if( IsFull(self) )
-            return false;
+        require( ! IsFull(self) );
 
         // accepting duplicate public keys would lock money forever
         // as each linkable ring signature allows only one withdrawal
+        require( ! PubExists(self, pub_x) );
 
-        if( PubExists(self, pub_x) )
-            return false;
-
-        bn256g1.Point memory pub = bn256g1.Point(pub_x, pub_y);
-        if( ! pub.IsOnCurve() )
-            return false;
+        Curve.Point memory pub = Curve.Point(pub_x, pub_y);
+        require( pub.IsOnCurve() );
 
         // Fill Ring with Public Keys
         //  R = {h ← H(h, y)}
@@ -169,11 +184,7 @@ library Ring
 
         if( IsFull(self) ) {
             // h ← H(h, m)
-            // XXX: this won't be unique, need to mix-in other things
-            //      m = (token, denomination)
-            //      but, m should be (token, denomination, randomentropy?)
-            self.hash.X = uint256(sha256(self.hash.X, self.token, self.denomination));
-            self.hash = bn256g1.HashToPoint(self.hash.X);
+            self.hash = Curve.HashToPoint(bytes32(self.hash.X));
         }
 
         return true;
@@ -195,18 +206,18 @@ library Ring
     *
     * Each segment is used when verifying the ring:
     *
-    *   sum({c...}) = H(R, m, τ, {a,b...})
+    *   h, sum({c...}) = H(h, {(τ,a,b)...})
     */
-    function _ringLink( uint256 previous_hash, uint256 cj, uint256 tj, bn256g1.Point tau, bn256g1.Point h, bn256g1.Point yj )
+    function _ringLink( uint256 previous_hash, uint256 cj, uint256 tj, Curve.Point tau, Curve.Point h, Curve.Point yj )
         internal constant returns (uint256 ho)
     {       
-        bn256g1.Point memory yc = yj.ScalarMult(cj);
+        Curve.Point memory yc = yj.ScalarMult(cj);
 
         // a ← g^t + y^c
-        bn256g1.Point memory a = bn256g1.ScalarBaseMult(tj).PointAdd(yc);
+        Curve.Point memory a = Curve.ScalarBaseMult(tj).PointAdd(yc);
 
         // b ← h^t + τ^c
-        bn256g1.Point memory b = h.ScalarMult(tj).PointAdd(tau.ScalarMult(cj));
+        Curve.Point memory b = h.ScalarMult(tj).PointAdd(tau.ScalarMult(cj));
 
         return uint256(sha256(previous_hash, a.X, a.Y, b.X, b.Y));
     }
@@ -232,13 +243,11 @@ library Ring
         internal view returns (bool)
     {
         // Ring must be full before signatures can be accepted
-        if( ! IsFull(self) )
-            return false;
+        require( ! IsFull(self) );
 
         // If tag exists, the signature is no longer valid
         // Remember, the tag must be saved to the ring afterwards
-        if( TagExists(self, tag_x) )
-            return false;
+        require( ! TagExists(self, tag_x) );
 
         // h ← H(h, τ)
         uint256 hashout = uint256(sha256(self.hash.X, tag_x, tag_y));
@@ -249,11 +258,11 @@ library Ring
             // sum({c...})
             uint256 cj = ctlist[2*i];
             uint256 tj = ctlist[2*i+1];
-            hashout = _ringLink(hashout, cj, tj, bn256g1.Point(tag_x, tag_y), self.hash, self.pubkeys[i]);
-            csum = addmod(csum, cj, bn256g1.Prime());
+            hashout = _ringLink(hashout, cj, tj, Curve.Point(tag_x, tag_y), self.hash, self.pubkeys[i]);
+            csum = addmod(csum, cj, Curve.GenOrder());
         }
 
-        hashout %= bn256g1.Prime();
+        hashout %= Curve.GenOrder();
         return hashout == csum;
     }
 }

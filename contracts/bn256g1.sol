@@ -1,6 +1,6 @@
 // Copyright (c) 2016-2017 Clearmatics Technologies Ltd
 
-// SPDX-License-Identifier: (LGPL-3.0+ AND GPL-3.0)
+// SPDX-License-Identifier: LGPL-3.0+
 
 pragma solidity ^0.4.18;
 
@@ -52,10 +52,11 @@ pragma solidity ^0.4.18;
 library bn256g1
 {
     // p = p(u) = 36u^4 + 36u^3 + 24u^2 + 6u + 1
-    uint256 internal constant FIELD_P = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47;
+    uint256 internal constant FIELD_ORDER = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47;
 
+    // Number of elements in the field (often called `q`)
     // n = n(u) = 36u^4 + 36u^3 + 18u^2 + 6u + 1
-    uint256 internal constant ORDER_N = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
+    uint256 internal constant GEN_ORDER = 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001;
 
     uint256 internal constant CURVE_B = 3;
 
@@ -63,13 +64,13 @@ library bn256g1
     uint256 internal constant CURVE_A = 0xc19139cb84c680a6e14116da060561765e05aa45a1c72a34f082305b61f3f52;
 
 
-    function Order() internal pure returns (uint256) {
-        return ORDER_N;
+    function GenOrder() internal pure returns (uint256) {
+        return GEN_ORDER;
     }
 
 
-    function Field() internal pure returns (uint256) {
-        return FIELD_P;
+    function FieldOrder() internal pure returns (uint256) {
+        return FIELD_ORDER;
     }
 
 
@@ -107,7 +108,7 @@ library bn256g1
         if (p.X == 0 && p.Y == 0)
             return Point(0, 0);
         // TODO: SubMod function?
-        return Point(p.X, FIELD_P - (p.Y % FIELD_P));
+        return Point(p.X, FIELD_ORDER - (p.Y % FIELD_ORDER));
     }
 
 
@@ -133,17 +134,19 @@ library bn256g1
     {
         uint256 beta = 0;
         uint256 y = 0;
-        uint256 x = uint256(s) % ORDER_N;
+
+        // XXX: Gen Order (n) or Field Order (p) ?
+        uint256 x = uint256(s) % GEN_ORDER;
 
         while( true ) {
             (beta, y) = FindYforX(x);
 
             // y^2 == beta
-            if( beta == mulmod(y, y, FIELD_P) ) {
+            if( beta == mulmod(y, y, FIELD_ORDER) ) {
                 return Point(x, y);
             }
 
-            x = addmod(x, 1, FIELD_P);
+            x = addmod(x, 1, FIELD_ORDER);
         }
     }
 
@@ -159,11 +162,11 @@ library bn256g1
         internal constant returns (uint256, uint256)
     {
         // beta = (x^3 + b) % p
-        uint256 beta = addmod(mulmod(mulmod(x, x, FIELD_P), x, FIELD_P), CURVE_B, FIELD_P);
+        uint256 beta = addmod(mulmod(mulmod(x, x, FIELD_ORDER), x, FIELD_ORDER), CURVE_B, FIELD_ORDER);
 
         // y^2 = x^3 + b
         // this acts like: y = sqrt(beta)
-        uint256 y = expMod(beta, CURVE_A, FIELD_P);
+        uint256 y = expMod(beta, CURVE_A, FIELD_ORDER);
 
         return (beta, y);
     }
@@ -184,9 +187,9 @@ library bn256g1
     function IsOnCurve(Point p)
         internal pure returns (bool)
     {
-        uint256 p_squared = mulmod(p.X, p.X, FIELD_P);
-        uint256 p_cubed = mulmod(p_squared, p.X, FIELD_P);
-        return addmod(p_cubed, CURVE_B, FIELD_P) == mulmod(p.Y, p.Y, FIELD_P);
+        uint256 p_squared = mulmod(p.X, p.X, FIELD_ORDER);
+        uint256 p_cubed = mulmod(p_squared, p.X, FIELD_ORDER);
+        return addmod(p_cubed, CURVE_B, FIELD_ORDER) == mulmod(p.Y, p.Y, FIELD_ORDER);
     }
 
 
@@ -211,7 +214,7 @@ library bn256g1
         input[3] = p2.Y;
         bool success;
         assembly {
-            success := call(sub(gas, 2000), 6, 0, input, 0x80, r, 0x40)
+            success := staticcall(sub(gas, 2000), 6, input, 0x80, r, 0x40)
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid }
         }
@@ -229,7 +232,7 @@ library bn256g1
         input[2] = s;
         bool success;
         assembly {
-            success := call(sub(gas, 2000), 7, 0, input, 0x60, r, 0x40)
+            success := staticcall(sub(gas, 2000), 7, input, 0x60, r, 0x40)
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid }
         }

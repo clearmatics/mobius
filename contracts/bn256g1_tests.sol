@@ -1,3 +1,7 @@
+// Copyright (c) 2016-2017 Clearmatics Technologies Ltd
+
+// SPDX-License-Identifier: LGPL-3.0+
+
 pragma solidity ^0.4.18;
 
 import './bn256g1.sol';
@@ -7,7 +11,7 @@ contract bn256g1_tests
 	using bn256g1 for bn256g1.Point;
 
 	function testOnCurve()
-		public constant returns (bool)
+		public returns (bool)
 	{
 		var g = bn256g1.Generator();
 		if( ! g.IsOnCurve() )
@@ -27,20 +31,23 @@ contract bn256g1_tests
 	}
 
 	function testHashToPoint()
-		public constant returns (bool)
+		public returns (uint)
 	{
 		var p = bn256g1.HashToPoint(sha256("hello world"));
 		if( ! p.IsOnCurve() )
-			return false;
+			return 1;
 
-		if( p.X != 0x28203c60efb85d8b7c3d81b455f9a2e34be9370a0d272f3ac4e316f112efcde6 || p.Y != 0x291b92bad2135d3a6e051f97b49fb98afc23aceb4b5f4953d146a248d0cf45a4 )
-			return false;
-
-		return true;
+		if( p.X != 18149469767584732552991861025120904666157684532372229697400814503441427125781 )
+			return 2;
+			
+		if( p.Y != 12637099731924609165048400529156461867563382406599203914231688990943216740974 )
+		    return 3;
+		
+		return 0;
 	}
 
 	function testNegate()
-		public constant returns (bool)
+		public returns (bool)
 	{
 		var g = bn256g1.Generator();
 		var x = g.PointAdd(g.Negate());
@@ -48,13 +55,13 @@ contract bn256g1_tests
 	}
 
 	function testIdentity()
-		public constant returns (bool)
+		public returns (bool)
 	{
 		return bn256g1.ScalarBaseMult(0).IsInfinity();
 	}
 
 	function testEquality()
-		public constant returns (bool)
+		public returns (bool)
 	{
 		var g = bn256g1.Generator();
 		var a = g.ScalarMult(9).PointAdd(g.ScalarMult(5));
@@ -63,9 +70,9 @@ contract bn256g1_tests
 	}
 
 	function testOrder()
-		public constant returns (bool)
+		public returns (bool)
 	{
-		var z = bn256g1.ScalarBaseMult(bn256g1.Order());
+		var z = bn256g1.ScalarBaseMult(bn256g1.GenOrder());
 		if( ! z.IsInfinity() ) {
 			return false;
 		}
@@ -80,7 +87,7 @@ contract bn256g1_tests
 	}
 
 	function testModExp()
-		public constant returns (bool)
+		public returns (bool)
 	{
 		uint256 a;
 
