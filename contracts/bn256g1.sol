@@ -47,6 +47,7 @@ pragma solidity ^0.4.18;
 *   p = 21888242871839275222246405745257275088696311157297823662689037894645226208583
 *   n = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 *   b = 3
+*   u = 4965661367192848881
 *   a = 5472060717959818805561601436314318772174077789324455915672259473661306552146
 */
 library bn256g1
@@ -119,6 +120,8 @@ library bn256g1
     * Example:
     *
     *   HashToPoint(sha256("hello world"))
+    *
+    * XXX: this isn't constant time!
     *
     * This implements the try-and-increment method of hashing a scalar
     * into a curve point. For more information see:

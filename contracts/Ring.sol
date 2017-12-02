@@ -33,15 +33,12 @@ import {bn256g1 as Curve} from './bn256g1.sol';
 * However, this specific contract introduces the following differences
 * in comparison to the white paper:
 *
-*  - P256k1 replaced with ALT_BN128 (as per EIP 213)
+*  - P256k1 replaced with ALT_BN128 (as per EIP-213)
 *  - The Message signed by Participants has changed
 *  - The Ring contract is now a library
 *  - The Ring Data stores the Token, Denomination and GUID
-*  - Ring size is a fixed size
-*
-* These changes reduce the amount of blockchain storage required,
-* significantly reduces the cost of Withdraw operations and makes the
-* library compatible with arbitrary Ethereum Tokens.
+*  - Ring is a fixed size
+*  - One SHA256 iteration per public key on verify
 *
 *
 * Initialise Ring (R):
@@ -64,6 +61,17 @@ import {bn256g1 as Curve} from './bn256g1.sol';
 *       csum += c
 *   h == csum
 *
+*
+* The Verify Signature routine differs from the Mobius whitepaper and 
+* is slightly less efficient because it performs one H() operation 
+* per public key.
+*
+* Performance improvements:
+*
+*  - Switch to SHA3
+*  - Reduce number of hash operations
+*  - Reduce number of storage operations
+*  - Use 'identity' function
 */
 library Ring
 {
@@ -83,7 +91,7 @@ library Ring
     function Message (Data storage self)
         internal view returns (uint256)
     {
-        require( ! IsFull(self) );
+        require( IsFull(self) );
 
         return self.hash.X;
     }
@@ -192,6 +200,16 @@ library Ring
 
 
     /**
+    * Save the tag, which will invalidate any future signatures from the same tag
+    */
+    function TagAdd (Data storage self, uint256 tag_x)
+        internal
+    {
+        self.tags.push(tag_x);
+    }
+
+
+    /**
     * Generates an ordered hash segment for each public key in the ring
     *
     *   a ← g^t + y^c
@@ -201,8 +219,8 @@ library Ring
     *
     *   - y is a pubkey in R
     *   - h is the root hash
-    *   - τ is the tag
-    *   - c is a random
+    *   - τ is the public key tag (same every time)
+    *   - c is a random point
     *
     * Each segment is used when verifying the ring:
     *
@@ -224,16 +242,6 @@ library Ring
 
 
     /**
-    * Save the tag, which will invalidate any future signatures from the same tag
-    */
-    function TagAdd (Data storage self, uint256 tag_x)
-        internal
-    {
-        self.tags.push(tag_x);
-    }
-
-
-    /**
     * Verify whether or not a Ring Signature is valid
     *
     * Must call TagAdd(tag_x) after a valid signature, if an existing
@@ -243,7 +251,7 @@ library Ring
         internal view returns (bool)
     {
         // Ring must be full before signatures can be accepted
-        require( ! IsFull(self) );
+        require( IsFull(self) );
 
         // If tag exists, the signature is no longer valid
         // Remember, the tag must be saved to the ring afterwards
@@ -256,8 +264,8 @@ library Ring
         for (uint i = 0; i < self.pubkeys.length; i++) {         
             // h ← H(h, a, b)
             // sum({c...})
-            uint256 cj = ctlist[2*i];
-            uint256 tj = ctlist[2*i+1];
+            uint256 cj = ctlist[2*i] % Curve.GenOrder();
+            uint256 tj = ctlist[2*i+1] % Curve.GenOrder();
             hashout = _ringLink(hashout, cj, tj, Curve.Point(tag_x, tag_y), self.hash, self.pubkeys[i]);
             csum = addmod(csum, cj, Curve.GenOrder());
         }
