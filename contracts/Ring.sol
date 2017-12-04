@@ -101,7 +101,7 @@ library Ring
     * Have all possible Tags been used, one for each Public Key
     * If the ring has not been initialized it is considered Dead.
     */
-    function IsDead (Data self)
+    function IsDead (Data storage self)
         internal view returns (bool)
     {
         return self.hash.X == 0 || (self.tags.length >= RING_SIZE && self.pubkeys.length >= RING_SIZE);
