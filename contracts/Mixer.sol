@@ -2,10 +2,10 @@
 
 // SPDX-License-Identifier: LGPL-3.0+
 
-
 pragma solidity ^0.4.18;
 
 import './Ring.sol';
+
 
 /**
 * Each ring is given a globally unique ID which consist of:
