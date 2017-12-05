@@ -9,14 +9,13 @@
     "@digix/doxity": "^0.5.2",
     "ganache-cli": "^6.0.0",
     "solidity-coverage": "^0.4.0",
-    "truffle": "^4.0.0"
+    "truffle": "^4.0.0",
+    "shell-escape": "^0.2.0",
+    "big-integer": "^1.6.0"
   },
   "scripts": {
     "testrpc": "ganache-cli --gasLimit 0xFFFFFFF",
     "test": "truffle test",
-    "coverage": "solidity-coverage",
-    "docs:compile": "node_modules/.bin/doxity compile",
-    "docs:publish": "node_modules/.bin/doxity publish",
-    "docs:build": "node_modules/.bin/doxity build"
+    "coverage": "solidity-coverage"
   }
 }

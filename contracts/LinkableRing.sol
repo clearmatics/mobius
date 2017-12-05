@@ -8,8 +8,8 @@ import {bn256g1 as Curve} from './bn256g1.sol';
 
 
 /**
-* This contract implements the Möbius algorithm as described in the
-* IACR 2017/881 paper by Sarah Meiklejohn and Rebekah Mercer.
+* This contract implements the Möbius linkable ring signature algorithm
+* as described in the IACR 2017/881 paper.
 *
 * - https://eprint.iacr.org/2017/881.pdf
 *
@@ -73,7 +73,7 @@ import {bn256g1 as Curve} from './bn256g1.sol';
 *  - Reduce number of storage operations
 *  - Use 'identity' function
 */
-library Ring
+library LinkableRing
 {
     using Curve for Curve.Point;
     uint256 public constant RING_SIZE = 4;

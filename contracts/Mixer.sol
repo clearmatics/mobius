@@ -4,7 +4,7 @@
 
 pragma solidity ^0.4.18;
 
-import './Ring.sol';
+import './LinkableRing.sol';
 
 
 /**
@@ -40,13 +40,13 @@ import './Ring.sol';
 */
 contract Mixer
 {
-    using Ring for Ring.Data;
+    using LinkableRing for LinkableRing.Data;
 
     struct Data {
         uint256 guid;
         uint256 denomination;
         address token;
-        Ring.Data ring;
+        LinkableRing.Data ring;
     }
 
     mapping(uint256 => Data) internal m_rings;
@@ -133,19 +133,21 @@ contract Mixer
     * by providing a ring signature by one of the public keys.
     */
     function Deposit (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
-        public returns (uint256)
+        public payable returns (uint256)
     {      
         // TODO: verify token is a valid ERC-223 contract
 
         // Denomination must be positive power of 2, e.g. only 1 bit set
-        if( 0 != (denomination & (denomination - 1)) )
-            revert();
+        require( 0 == (denomination & (denomination - 1)) );
+
+        // Public key can only exist in one ring at a time
+        require( 0 == m_pubx_to_ring[pub_x] );
 
         uint256 filling_id;
         Data storage entry;
         (filling_id, entry) = lookupFillingRing(token, denomination);
 
-        Ring.Data storage ring = entry.ring;
+        LinkableRing.Data storage ring = entry.ring;
 
         if( ! ring.AddParticipant(pub_x, pub_y) )
             revert();
@@ -175,18 +177,16 @@ contract Mixer
     */
     function Withdraw (uint256 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
         public returns (bool)
-    {
+    {    
         Data storage entry = m_rings[ring_id];
-        Ring.Data storage ring = entry.ring;
+        LinkableRing.Data storage ring = entry.ring;
 
-        if( 0 == entry.denomination )
-            revert();
+        // Entry is empty, non-existant ring
+        require( 0 != entry.denomination );
 
-        if( ! ring.IsFull() )
-            revert();
+        require( ! ring.IsFull() );
 
-        if( ! ring.SignatureValid(tag_x, tag_y, ctlist) )
-            revert();
+        require( ring.SignatureValid(tag_x, tag_y, ctlist) );
 
         // Tag must be added before withdraw
         ring.TagAdd(tag_x);
@@ -205,6 +205,8 @@ contract Mixer
             delete m_rings[ring_id];
             MixerDead(ring_id);
         }
+
+        return true;
     }
 
 
