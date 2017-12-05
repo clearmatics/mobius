@@ -11,7 +11,9 @@
     "solidity-coverage": "^0.4.0",
     "truffle": "^4.0.0",
     "shell-escape": "^0.2.0",
-    "big-integer": "^1.6.0"
+    "big-integer": "^1.6.0",
+    "tmp": "^0.0.30",
+    "json-bigint-string": "^1.0.0"
   },
   "scripts": {
     "testrpc": "ganache-cli --gasLimit 0xFFFFFFF",

@@ -8,8 +8,8 @@ import {bn256g1 as Curve} from './bn256g1.sol';
 
 
 /**
-* This contract implements the Möbius linkable ring signature algorithm
-* as described in the IACR 2017/881 paper.
+* This contract implements the linkable ring signature algorithm
+* as described in the Möbius whitepaper (IACR 2017/881):
 *
 * - https://eprint.iacr.org/2017/881.pdf
 *
@@ -89,11 +89,11 @@ library LinkableRing
     * The message to be signed to withdraw from the ring once it's full
     */
     function Message (Data storage self)
-        internal view returns (uint256)
+        internal view returns (bytes32)
     {
         require( IsFull(self) );
 
-        return self.hash.X;
+        return bytes32(self.hash.X);
     }
 
 

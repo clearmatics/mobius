@@ -83,7 +83,7 @@ contract Mixer
     /**
      * A Mixer Ring is Full, Tokens can now be withdrawn from it
      */
-    event MixerReady( uint256 indexed ring_id, uint256 message );
+    event MixerReady( uint256 indexed ring_id, bytes32 message );
 
     /**
     * A Mixer Ring has been fully with withdrawn, the Ring is dead.
