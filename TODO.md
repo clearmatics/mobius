@@ -1,9 +1,6 @@
 # TODO
 
-* Move curve to `alt_bn128`
-* Implement new OpCodes 
 * Document usage with stealth addresses
-* Test submitting a transaction once the ring is full
 * Test submitting a deposit with a bad signature
 * Test cannot add same public key twice to any ring
 * Test submitting a withdrawal with bad data

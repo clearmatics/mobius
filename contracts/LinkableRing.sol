@@ -148,13 +148,13 @@ library LinkableRing
     /**
     * Initialise the Ring.Data structure with a token and denomination
     */
-    function Initialize (Data storage self, uint256 guid)
+    function Initialize (Data storage self, bytes32 guid)
         internal returns (bool)
     {
-        require( guid != 0 );
+        require( uint256(guid) != 0 );
         require( self.hash.X == 0 );
 
-        self.hash.X = guid;
+        self.hash.X = uint256(guid);
 
         return true;
     }

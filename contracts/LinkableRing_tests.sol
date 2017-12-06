@@ -35,7 +35,7 @@ contract LinkableRing_tests
 	{
 		delete m_ring;
 
-		var guid = uint256(sha256("1"));
+		var guid = sha256("1");
 		var ok = m_ring.Initialize(guid);
 		require( ok == true );
 		require( m_ring.IsInitialized() );

@@ -43,28 +43,28 @@ contract Mixer
     using LinkableRing for LinkableRing.Data;
 
     struct Data {
-        uint256 guid;
+        bytes32 guid;
         uint256 denomination;
         address token;
         LinkableRing.Data ring;
     }
 
-    mapping(uint256 => Data) internal m_rings;
+    mapping(bytes32 => Data) internal m_rings;
 
     /** With a public key, lookup which ring it belongs to */
-    mapping(uint256 => uint256) internal m_pubx_to_ring;
+    mapping(uint256 => bytes32) internal m_pubx_to_ring;
 
     /** Rings which aren't full yet, H(token,denom) -> ring_id */
-    mapping(uint256 => uint256) internal m_filling;
+    mapping(bytes32 => bytes32) internal m_filling;
 
     /** Nonce used to generate Ring Messages */
-    uint256 m_ring_ctr;
+    uint256 internal m_ring_ctr;
 
     /**
     * Token has been deposited into a Mixer Ring
     */
     event MixerDeposit(
-        uint256 indexed ring_id,
+        bytes32 indexed ring_id,
         uint256 indexed pub_x,
         address token,
         uint256 value
@@ -74,7 +74,7 @@ contract Mixer
     * Token has been withdraw from a Mixer Ring
     */
     event MixerWithdraw(
-        uint256 indexed ring_id,
+        bytes32 indexed ring_id,
         uint256 tag_x,
         address token,
         uint256 value
@@ -83,12 +83,12 @@ contract Mixer
     /**
      * A Mixer Ring is Full, Tokens can now be withdrawn from it
      */
-    event MixerReady( uint256 indexed ring_id, bytes32 message );
+    event MixerReady( bytes32 indexed ring_id, bytes32 message );
 
     /**
     * A Mixer Ring has been fully with withdrawn, the Ring is dead.
     */
-    event MixerDead( uint256 indexed ring_id );
+    event MixerDead( bytes32 indexed ring_id );
 
 
     /**
@@ -97,25 +97,23 @@ contract Mixer
     * is full the 'filling' ring will be deleted.
     */
     function lookupFillingRing (address token, uint256 denomination)
-        internal returns (uint256, Data storage)
+        internal returns (bytes32, Data storage)
     {
         // The filling ID allows quick lookup for the same Token and Denomination
-        var filling_id = uint256(sha256(token, denomination));
-        uint256 ring_guid = m_filling[filling_id];
+        var filling_id = sha256(token, denomination);
+        var ring_guid = m_filling[filling_id];
         if( ring_guid != 0 )
             return (filling_id, m_rings[ring_guid]);
 
 
         // The GUID is unique per Mixer instance, Nonce, Token and Denomination
-        ring_guid = uint256(sha256(address(this), m_ring_ctr, filling_id));
+        ring_guid = sha256(address(this), m_ring_ctr, filling_id);
 
         Data storage entry = m_rings[ring_guid];
 
-        if( 0 != entry.denomination )
-            revert();
-
-        if( ! entry.ring.Initialize(ring_guid) )
-            revert();
+        // Entry must be initialized only once
+        require( 0 == entry.denomination );
+        require( entry.ring.Initialize(ring_guid) );
 
         entry.guid = ring_guid;
         entry.token = token;
@@ -129,11 +127,27 @@ contract Mixer
 
 
     /**
+    * Given a GUID of a full Ring, return the Message to sign
+    */
+    function Message (bytes32 ring_guid)
+        public returns (bytes32)
+    {
+        Data storage entry = m_rings[ring_guid];
+        LinkableRing.Data storage ring = entry.ring;
+
+        // Entry is empty, non-existant ring
+        require( 0 != entry.denomination );
+
+        return ring.Message();
+    }
+
+
+    /**
     * Deposit tokens of a specific denomination which can only be withdrawn
     * by providing a ring signature by one of the public keys.
     */
     function Deposit (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
-        public payable returns (uint256)
+        public payable returns (bytes32)
     {      
         // TODO: verify token is a valid ERC-223 contract
 
@@ -141,21 +155,20 @@ contract Mixer
         require( 0 == (denomination & (denomination - 1)) );
 
         // Public key can only exist in one ring at a time
-        require( 0 == m_pubx_to_ring[pub_x] );
+        require( 0 == uint256(m_pubx_to_ring[pub_x]) );
 
-        uint256 filling_id;
+        bytes32 filling_id;
         Data storage entry;
         (filling_id, entry) = lookupFillingRing(token, denomination);
 
         LinkableRing.Data storage ring = entry.ring;
 
-        if( ! ring.AddParticipant(pub_x, pub_y) )
-            revert();
+        require( ring.AddParticipant(pub_x, pub_y) );
 
         // Associate Public X point with Ring GUID
         // This allows the ring to be recovered with the public key
         // Without having to monitor/replay the RingDeposit events
-        uint256 ring_guid = entry.guid;
+        var ring_guid = entry.guid;
         m_pubx_to_ring[pub_x] = ring_guid;
         MixerDeposit(ring_guid, pub_x, token, denomination);
 
@@ -175,7 +188,7 @@ contract Mixer
     * must provide a Signature which has a unique Tag. Each Tag can only be used
     * once.
     */
-    function Withdraw (uint256 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
+    function Withdraw (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
         public returns (bool)
     {    
         Data storage entry = m_rings[ring_id];
@@ -184,7 +197,7 @@ contract Mixer
         // Entry is empty, non-existant ring
         require( 0 != entry.denomination );
 
-        require( ! ring.IsFull() );
+        require( ring.IsFull() );
 
         require( ring.SignatureValid(tag_x, tag_y, ctlist) );
 
