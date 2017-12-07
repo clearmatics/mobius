@@ -108,12 +108,21 @@ if( orbitalPath ) {
 
             // Then perform all the withdraws
             var result = null;
+            var total_gas = 0;
+            var i = 0;
             for( var k in inputs.signatures ) {
                 const sig = inputs.signatures[k];
                 const tau = sig.tau;
                 const ctlist = sig.ctlist;
-                result = await instance.Withdraw(ring_guid, tau.x, tau.y, ctlist)
+                result = await instance.Withdraw(ring_guid, tau.x, tau.y, ctlist);
+                assert.ok(result.receipt.status, "Bad withdraw status");
+
+                total_gas += result.receipt.gasUsed;
+
+                i++;
             }
+
+            console.log("      Average Gas per Withdraw: " + (total_gas / i));
 
             // Verify the Ring is dead
             const expectedMixerDead = result.logs.some(el => (el.event === 'MixerDead'));

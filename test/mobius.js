@@ -63,7 +63,59 @@ function RandomPoint () {
 }
 
 
+function CreateDummyTx(account, value) {
+    return { from: account, value: value };
+}
+
+
 contract('Mixer', (accounts) => {
+    it('Invalid and duplicate deposits', async () => {
+        var point = RandomPoint();
+
+        const txObj = CreateDummyTx(accounts[0], 1);
+        const token = 0;            // 0 = ether
+
+        let instance = await Mixer.deployed();
+
+        // This should succeed
+        let result = await instance.Deposit(token, txObj.value, point.x, point.y, txObj);
+        assert.ok(result.receipt.status, "Bad deposit status with valid point");
+
+        // This will fail because the point is already in a ring
+        var ok = false;
+        result = await instance.Deposit(token, txObj.value, point.x, point.y, txObj).catch(function(err) {
+            assert.include(err.message, 'revert', 'Deposit with duplicate key should revert');    
+            ok = true;
+        });
+        if( ! ok )
+            assert.fail("Deposit with duplicate key should revert");
+
+        // This will fail because the point is invalid
+        point = RandomPoint();
+        ok = false;
+        result = await instance.Deposit(token, txObj.value, 123, point.y, txObj).catch(function(err) {
+            assert.include(err.message, 'revert', 'Deposit with invalid point should revert');    
+            ok = true;
+        });
+        if( ! ok )
+            assert.fail("Deposit with invalid point should have reverted!");
+
+        // This will fail because the denomination is invalid
+        ok = false;
+        result = await instance.Deposit(token, 0, point.x, point.y, txObj).catch(function(err) {
+            assert.include(err.message, 'revert', 'Deposit with invalid denomination should revert');    
+            ok = true;
+        });
+        if( ! ok )
+            assert.fail("Deposit with invalid denomination should revert");
+
+        // Then fill the ring with a remaining 3, otherwise further tests will fail
+        for( var i = 0; i < 3; i++ ) {
+            point = RandomPoint();
+            result = await instance.Deposit(token, txObj.value, point.x, point.y, txObj);
+        }
+    });
+
     it('Events and basic functionality', async () => {
         let instance = await Mixer.deployed();
 
@@ -84,12 +136,16 @@ contract('Mixer', (accounts) => {
         var i = 0;
         var results = [];
         var ring_guid = null;
-        while( i++ < (ringSize * 2) )
+        var total_gas = 0;
+        while( i < (ringSize * 2) )
         {
+            i++;
             // Deposit a random public key
             const point = RandomPoint();
             let result = await instance.Deposit(token, txValue, point.x, point.y, txObj);
             assert.ok(result.receipt.status, "Bad deposit status");
+
+            total_gas += result.receipt.gasUsed;
 
             // Balance should increase by 1 Wei each deposit
             const contractBalance = web3.eth.getBalance(instance.address);
@@ -120,5 +176,6 @@ contract('Mixer', (accounts) => {
                 ring_guid = null;
             }
         }
+        console.log("      Average Gas per Deposit: " + (total_gas / i));
     });
 });

@@ -35,10 +35,22 @@ The [Orbital](https://github.com/clearmatics/orbital) tool can be used to create
 
 ## Caveats
 
+ * #34 - Gas payer exposes sender/receiver
  * #22 - Only Ether is presently supported
  * #32 - Tokens are locked into the Ring until it's filled
  * #12 - Withdraw messages can be replayed
 
+
+## Gas Usage
+
+Despite being an improvement over the previous iteration which used a Solidity P256k1 implementation, the new alt_bn128 opcodes are still expensive and there are many improvements which can be made to reduce these costs further. If you have any interesting optimisations or solutions to remove storage and memory operations please open an issue.
+
+Currently the Gas usage is:
+
+| Function | Avg     |
+| -------- | ------- |
+| Deposit  | 150k    |
+| Withdraw | 725k    |
 
 ## Developing
 
