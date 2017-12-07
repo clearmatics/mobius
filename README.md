@@ -2,21 +2,41 @@
 
 Trustless Tumbling for Transaction Privacy
 
+
 ## Introduction
 
-Möbius is a Smart Contract that runs on Ethereum that offers trustless tumbling.
+Möbius is a Smart Contract that runs on Ethereum that offers trustless autonomous tumbling using linkable ring signatures. *This proof of concept is still evolving and comes with the caveat that it should not be used for anything other than a technology demonstration.*
+
 
 ## White Paper
 
 [S. Meiklejon, R. Mercer. Möbius: Trustless Tumbling for Transaction Privacy][1]
 
+
 ## Using Möbius
 
-To generate data for a Möbius contract the [Orbital][6] tool is provided. Installation details are available in the Orbital repository.
+To tumble a token it is deposited into the [Mixer](contracts/Mixer.sol) smart contract by sending the token and the stealth public key of the receiver to the `Deposit` method.
 
-The `orbital` CLI tool supports the generation of data to create a `mobius` contract and to deposit and withdraw. 
+The Mixer contract places the token into an unfilled [Ring](contracts/Ring.sol) specific to that token and denomination and provides the GUID of the Ring. The current ring size is 4, so when 3 other people deposit the same denomination of token into the Mixer the Ring will have filled. Tokens can only be withdrawn when the Ring is full.
 
-Möbius contracts are deployed in the standard way and declare the size of a ring and the denomination of the deposit.
+The receiver then generates a linkable ring signature using their stealth private key, this signature and the Ring GUID is provided to the `Withdraw` method in exchange for the token.
+
+The lifecycle and state of the Mixer and Rings is monitored using the following Events:
+
+ * `MixerDeposit` - Tokens have been deposited into a Ring, includes: Ring GUID, Receiver Public Key, Token, Value
+ * `MixerReady` - Withdrawals can be now me made, includes: Ring GUID, Signing Message
+ * `MixerWithdraw` - Tokens have been withdrawn from a Ring, includes: Ring GUID, Tag, Token, Value
+ * `MixerDead` - All tokens have been withdrawn from a Ring, includes: Ring GUID
+
+The [Orbital](https://github.com/clearmatics/orbital) tool can be used to create the necessary keys and to create and verify compatible ring signatures, for details see the [Orbital Integration Tests](test/orbital.js).
+
+
+## Caveats
+
+ * #22 - Only Ether is presently supported
+ * #32 - Tokens are locked into the Ring until it's filled
+ * #12 - Withdraw messages can be replayed
+
 
 ## Developing
 
@@ -38,6 +58,7 @@ Start `testrpc` in a separate terminal tab or window.
     yarn test
 
 This will compile the contract, deploy to the Ganache instance and run the tests. 
+
 
 #### Testing with Orbital
 
