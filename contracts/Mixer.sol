@@ -105,7 +105,6 @@ contract Mixer
         if( ring_guid != 0 )
             return (filling_id, m_rings[ring_guid]);
 
-
         // The GUID is unique per Mixer instance, Nonce, Token and Denomination
         ring_guid = sha256(address(this), m_ring_ctr, filling_id);
 

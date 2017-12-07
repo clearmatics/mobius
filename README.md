@@ -37,22 +37,11 @@ Start `testrpc` in a separate terminal tab or window.
     # in separate window or tab
     yarn test
 
-This will compile the contract, deploy to the testrpc instance and run the tests. 
+This will compile the contract, deploy to the Ganache instance and run the tests. 
 
-#### Create new test data
+#### Testing with Orbital
 
-The [orbital][6] tool is needed to generate the signatures and random keys for the tests
-
-    # generate random key pairs
-    ./orbital generate -n 4 > keys.json 
-
-    # generate ring signatures
-    ./orbital inputs -k keys.json -m 50b44f86159783db5092ebe77fb4b9cc29e445e54db17f0e8d2bed4eb63126fc -n 4 > ringSignature.json
-
-    # verify if the signatures are correct
-    ./orbital verify -f ringSignature.json  -m 50b44f86159783db5092ebe77fb4b9cc29e445e54db17f0e8d2bed4eb63126fc
-
-After generating the signatures overwrite the [ringSignature.json](test/ringSignature.json) with the new ring signatures.
+The [orbital][6] tool is needed to generate the signatures and random keys for some of the tests. If `orbital` is in `$PATH` the `yarn test` command will run additional tests which verify the functionality of the Mixer contract using randomly generated keys instead of the fixed test cases.
 
 [1]: https://eprint.iacr.org/2017/881.pdf
 [2]: http://truffleframework.com/
