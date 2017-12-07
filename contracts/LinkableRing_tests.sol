@@ -4,14 +4,14 @@
 
 pragma solidity ^0.4.18;
 
-import './Ring.sol';
+import './LinkableRing.sol';
 
 
-contract Ring_tests
+contract LinkableRing_tests
 {
-	using Ring for Ring.Data;
+	using LinkableRing for LinkableRing.Data;
 
-	Ring.Data internal m_ring;
+	LinkableRing.Data internal m_ring;
 
 	function testInit ()
 		public returns (bool)
@@ -35,7 +35,7 @@ contract Ring_tests
 	{
 		delete m_ring;
 
-		var guid = uint256(sha256("1"));
+		var guid = sha256("1");
 		var ok = m_ring.Initialize(guid);
 		require( ok == true );
 		require( m_ring.IsInitialized() );
@@ -92,7 +92,6 @@ contract Ring_tests
         ctlist[7] = 16400172916399253914651469367823034567665816937929536474245909361083746809541;
         
         var ok = m_ring.SignatureValid(13495246100508828436129396215696389042103917384015723197132056291949822869447, 17179563752757494496597752941318743229705747077314286085295431297834666711491, ctlist);
-
         require( ok );
 
 		return ok;

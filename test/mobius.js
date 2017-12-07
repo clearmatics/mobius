@@ -1,6 +1,9 @@
-const Ring_tests = artifacts.require("./Ring_tests.sol");
+const bigInt = require("big-integer");
+var JSONBigInt = require('json-bigint-string');
+
+
+const LinkableRing_tests = artifacts.require("./LinkableRing_tests.sol");
 const Mixer = artifacts.require("./Mixer.sol");
-const Mixer_tests = artifacts.require("./Mixer_tests.sol");
 const bn256g1_tests = artifacts.require("./bn256g1_tests.sol");
 
 const ringSignature = require("./ringSignature.bn256");
@@ -8,25 +11,26 @@ const ringSignature = require("./ringSignature.bn256");
 const inputDataDeposit = ringSignature.ring.map(d => [d.x, d.y]);
 const inputDataWithdraw = ringSignature.signatures.map(d => [d.tau.x, d.tau.y, d.ctlist]);
 
+
+
+
+// XXX: truffle solidity tests are a lil broken due to the 'import' bug
+// e.g. the imports in contracts/ are relative to the CWD not the source file
+//      this means when compiling the tests the CWD is the project root, so 
+//      conflicting paths...
 const testContracts = {
-    Ring_tests: Ring_tests,
-    Mixer_tests: Mixer_tests,
+    LinkableRing_tests: LinkableRing_tests,
     bn256g1_tests: bn256g1_tests
 };
-
 const allSimpleTests = {
     bn256g1_tests:  [
         "testOnCurve", "testHashToPoint", "testNegate", "testIdentity", "testEquality",
         "testOrder", "testModExp"
     ],
-    Ring_tests: [
-        "testParticipate", "testVerify",
-    ],
-    Mixer_tests: [
-        "testDeposit"
+    LinkableRing_tests: [
+        "testInit", "testParticipate", "testVerify",
     ]
 };
-
 Object.keys(allSimpleTests).forEach(function(k) {
     var obj = testContracts[k];
     contract(k, (accounts) => {
@@ -45,107 +49,79 @@ Object.keys(allSimpleTests).forEach(function(k) {
 });
 
 
+// Random point on the alt_bn128 curve
+function RandomPoint () {
+    const P = bigInt("21888242871839275222246405745257275088696311157297823662689037894645226208583");
+    const N = bigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
+    const A = bigInt("5472060717959818805561601436314318772174077789324455915672259473661306552146");
+    while( true ) {
+        const x = bigInt.randBetween(1, N.prev());
+        const beta = x.multiply(x).mod(P).multiply(x).mod(P).add(3).mod(P);
+        const y = beta.modPow(A, P);
+        const y_squared = y.multiply(y).mod(P);
+        if( y_squared.eq(beta) ) {
+            return {x: x.toString(), y: y.toString()};
+        }
+    }
+}
+
+
 contract('Mixer', (accounts) => {
-    /*
-    it('Deploy the contract', (done) => {
-        Mixer.deployed().then((instance) => {     
-            var availableForDeposit = instance.AvailableForDeposit({fromBlock: "latest"});
-            assert.ok(availableForDeposit, 'Available for deposit event was not emitted');
-           
-            done();            
-        });
-    });
-    */
+    it('Events and basic functionality', async () => {
+        let instance = await Mixer.deployed();
 
-    /*
-    it('Starting the contract', (done) => {
-        Mixer.deployed().then((instance) => {           
-            const owner = accounts[0];
-            const txObj = { from: owner };
+        // Deposit 1 Wei into mixer
+        const txValue = 1;
+        const owner = accounts[0];
+        const token = 0;            // 0 = ether
+        const txObj = { from: owner, value: txValue };
+        
+        const startingBalance = web3.eth.getBalance(instance.address);
+        const ringSize = 4;
+
+        // Deposit 4 times (the ring size) into the mixer
+        // Verify:
+        //  - Mixer accepts deposits
+        //  - Mixer emits MixerDeposit event for each deposit
+        //  - Last deposit also emits MixerReady message
+        var i = 0;
+        var results = [];
+        var ring_guid = null;
+        while( i++ < (ringSize * 2) )
+        {
+            // Deposit a random public key
+            const point = RandomPoint();
+            let result = await instance.Deposit(token, txValue, point.x, point.y, txObj);
+            assert.ok(result.receipt.status, "Bad deposit status");
+
+            // Balance should increase by 1 Wei each deposit
+            const contractBalance = web3.eth.getBalance(instance.address);
+            assert.equal(contractBalance.toString(), startingBalance.add(txValue * i).toString());
+
+            // MixerDeposit event should be triggered
+            const expectedMixerDeposit = result.logs.some(el => (el.event === 'MixerDeposit'));
+            assert.ok(expectedMixerDeposit, "MixerDeposit event was not emitted");
+
+            // Ring GUID should match the previous one
+            const depositEvent = result.logs.find(el => (el.event === 'MixerDeposit'));
+            if( ring_guid !== null ) {
+                assert.equal(depositEvent.args.ring_id.toString(), ring_guid, "Ring GUID batch doesn't match");
+            }
+            else {
+                ring_guid = depositEvent.args.ring_id.toString();
+            }
             
-            instance.start(txObj).then(result => {         
-                const contractBalance = web3.eth.getBalance(instance.address).toString();
-                
-                const expectedRingMessage = result.logs.some(el => (el.event === 'RingMessage'));
-                assert.ok(expectedRingMessage, "RingMessage event was not emitted"); 
-                                           
-                done();
-            });
-        });
+            // For every N deposits, verify a MixerReady event has triggered
+            const isLast = 0 == (i % ringSize);
+            if( isLast ) {
+                const expectedMixerReady = result.logs.some(el => (el.event === 'MixerReady'));
+                assert.ok(expectedMixerReady, "MixerReady event was not emitted");
+
+                const readyEvent = result.logs.find(el => (el.event === 'MixerReady'));
+                assert.equal(readyEvent.args.ring_id, ring_guid, "Ring GUID batch doesn't match");
+
+                ring_guid = null;
+            }
+        }
     });
-    */
-
-    /*
-    it('Deposit in ring and create particpants', (done) => {
-        Mixer.deployed().then((instance) => {
-            const depositValue = 1;
-            const token = 0;            // 0 = ether
-            const owner = accounts[0];
-            const txValue = web3.toWei(depositValue, 'ether');
-            const txObj = { from: owner, value: txValue };
-            
-            const txPromises = inputDataDeposit.reduce((prev, data) => {
-                const pubPosX = data[0];
-                const pubPosY = data[1];
-                
-                const executeDeposit = () => {
-                    return instance.Deposit(token, depositValue, pubPosX, pubPosY, txObj)
-                        .then(result => {
-                            const txObj = web3.eth.getTransaction(result.tx);
-                            const receiptStr = JSON.stringify(result,null,'\t');
-                            const txStr = JSON.stringify(txObj,null,'\t');
-                            return result;
-                        });
-                };
-                return (prev ? prev.then(executeDeposit) : executeDeposit());
-            }, undefined);
-            txPromises.then((result) => {
-                // TODO: verify that returned ring guid is the same for all transactions
-                const expected = result.logs.some(el => (el.event === 'MixerDeposit'));
-                assert.ok(expected, 'MixerDeposit event was not emitted');
-
-                const contractBalance = web3.eth.getBalance(instance.address).toString();
-                assert.deepEqual(contractBalance, web3.toWei(depositValue*inputDataDeposit.length, 'ether'));
-                done();
-            });
-        });
-    });
-    */
-
-    /*
-    it('Withdraw from the ring', (done) => {
-        Mixer.deployed().then((instance) => {
-            const owner = accounts[0];
-            const txObj = { from: owner, gas: 160000000 };
-            
-            const txPromises = inputDataWithdraw.reduce((prev, data) => {
-                const pubPosX = data[0];
-                const pubPosY = data[1];
-                const signature = data[2]; // ctlist  
-                              
-                const executeWithdraw = () => {
-                    return instance.withdraw(pubPosX, pubPosY, signature, txObj)
-                        .then(result => {
-                            const txObj = web3.eth.getTransaction(result.tx);
-                            const receiptStr = JSON.stringify(result,null,'\t');
-                            const txStr = JSON.stringify(txObj,null,'\t');
-                            return result;
-                        });
-                };
-                return (prev ? prev.then(executeWithdraw) : executeWithdraw());
-            }, undefined);
-            txPromises.then((result) => {
-                const withdrawEventExpected = result.logs.some(el => (el.event === 'WithdrawEvent'));
-                assert.ok(withdrawEventExpected, 'Withdraw event was not emitted');
-
-                const availableForDepositExpected = result.logs.some(el => (el.event === 'AvailableForDeposit'));
-                assert.ok(availableForDepositExpected, 'Available for deposit event was not emitted');
-
-                const contractBalance = web3.eth.getBalance(instance.address).toString();
-                assert.deepEqual(contractBalance, web3.toWei(0, 'ether'))
-                done();
-            });
-        });
-    });
-    */
 });

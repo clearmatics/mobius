@@ -8,8 +8,8 @@ import {bn256g1 as Curve} from './bn256g1.sol';
 
 
 /**
-* This contract implements the Möbius algorithm as described in the
-* IACR 2017/881 paper by Sarah Meiklejohn and Rebekah Mercer.
+* This contract implements the Franklin Zhang linkable ring signature
+* algorithm as used by the Möbius whitepaper (IACR 2017/881):
 *
 * - https://eprint.iacr.org/2017/881.pdf
 *
@@ -49,11 +49,11 @@ import {bn256g1 as Curve} from './bn256g1.sol';
 *   m = HashToPoint(h)
 *
 *
-* Verify Signature (S):
+* Verify Signature (σ):
 *
 *   c = 0
 *   h = H(m, τ)
-*   for j,c,t in S
+*   for j,c,t in σ
 *       y = R[j]
 *       a = g^t + y^c
 *       b = m^t + τ^c
@@ -64,16 +64,17 @@ import {bn256g1 as Curve} from './bn256g1.sol';
 *
 * The Verify Signature routine differs from the Mobius whitepaper and 
 * is slightly less efficient because it performs one H() operation 
-* per public key.
+* per public key, instead of appending all items to be hashed into a 
+* list then hashing the result.
 *
-* Performance improvements:
+* Potential Performance improvements:
 *
 *  - Switch to SHA3
-*  - Reduce number of hash operations
+*  - Reduce number of hash operations in verify (requires more memory, but only 1 hash)
 *  - Reduce number of storage operations
-*  - Use 'identity' function
+*  - Use 'identity' precompiled contract
 */
-library Ring
+library LinkableRing
 {
     using Curve for Curve.Point;
     uint256 public constant RING_SIZE = 4;
@@ -89,11 +90,11 @@ library Ring
     * The message to be signed to withdraw from the ring once it's full
     */
     function Message (Data storage self)
-        internal view returns (uint256)
+        internal view returns (bytes32)
     {
         require( IsFull(self) );
 
-        return self.hash.X;
+        return bytes32(self.hash.X);
     }
 
 
@@ -148,13 +149,13 @@ library Ring
     /**
     * Initialise the Ring.Data structure with a token and denomination
     */
-    function Initialize (Data storage self, uint256 guid)
+    function Initialize (Data storage self, bytes32 guid)
         internal returns (bool)
     {
-        require( guid != 0 );
+        require( uint256(guid) != 0 );
         require( self.hash.X == 0 );
 
-        self.hash.X = guid;
+        self.hash.X = uint256(guid);
 
         return true;
     }
@@ -219,7 +220,7 @@ library Ring
     *
     *   - y is a pubkey in R
     *   - h is the root hash
-    *   - τ is the public key tag (same every time)
+    *   - τ is the public key tag (unique per message)
     *   - c is a random point
     *
     * Each segment is used when verifying the ring:
