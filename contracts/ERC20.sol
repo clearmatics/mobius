@@ -1,6 +1,6 @@
 // Copyright (c) 2016-2017 Clearmatics Technologies Ltd
 
-// SPDX-License-Identifier: (LGPL-3.0+ AND GPL-3.0)
+// SPDX-License-Identifier: LGPL-3.0+
 
 pragma solidity ^0.4.2;
 // ERC Token Standard #20 Interface
