@@ -1,3 +1,7 @@
+// Copyright (c) 2016-2017 Clearmatics Technologies Ltd
+
+// SPDX-License-Identifier: LGPL-3.0+
+
 const fs = require('fs');
 const path = require('path');
 const shellescape = require('shell-escape');
