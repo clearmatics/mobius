@@ -20,7 +20,7 @@ Möbius contracts are deployed in the standard way and declare the size of a rin
 
 ## Developing
 
-[Truffle][2] is used to develop and test the Möbius Smart Contract. This has a dependency of [Node.js][3]. [solidity-coverage ][7] provides code coverage metrics. 
+[Truffle][2] is used to develop and test the Möbius Smart Contract. This has a dependency of [Node.js][3]. [solidity-coverage][7] provides code coverage metrics.
 
 Prerequisites:
 
