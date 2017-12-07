@@ -10,13 +10,6 @@ const LinkableRing_tests = artifacts.require("./LinkableRing_tests.sol");
 const Mixer = artifacts.require("./Mixer.sol");
 const bn256g1_tests = artifacts.require("./bn256g1_tests.sol");
 
-const ringSignature = require("./ringSignature.bn256");
-
-const inputDataDeposit = ringSignature.ring.map(d => [d.x, d.y]);
-const inputDataWithdraw = ringSignature.signatures.map(d => [d.tau.x, d.tau.y, d.ctlist]);
-
-
-
 
 // XXX: truffle solidity tests are a lil broken due to the 'import' bug
 // e.g. the imports in contracts/ are relative to the CWD not the source file
