@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "repository": "https://github.com/clearmatics/mobius.git",
-  "author": "clearmatics@clearmatics.com",
+  "author": "opensource@clearmatics.com",
   "license": "LGPL-3.0+",
   "dependencies": {
     "@digix/doxity": "^0.5.2",
