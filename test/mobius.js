@@ -1,3 +1,7 @@
+// Copyright (c) 2016-2017 Clearmatics Technologies Ltd
+
+// SPDX-License-Identifier: LGPL-3.0+
+
 const bigInt = require("big-integer");
 var JSONBigInt = require('json-bigint-string');
 
