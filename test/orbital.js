@@ -111,15 +111,24 @@ if( orbitalPath ) {
             var total_gas = 0;
             var i = 0;
             for( var k in inputs.signatures ) {
+                i++;
+
+                // Verify the withdraw signature works
                 const sig = inputs.signatures[k];
                 const tau = sig.tau;
                 const ctlist = sig.ctlist;
                 result = await instance.Withdraw(ring_guid, tau.x, tau.y, ctlist);
                 assert.ok(result.receipt.status, "Bad withdraw status");
-
                 total_gas += result.receipt.gasUsed;
 
-                i++;
+                // Verify same signature can't withdraw twice
+                var ok = false;
+                await instance.Withdraw(ring_guid, tau.x, tau.y, ctlist).catch(function(err) {
+                    assert.include(err.message, 'revert', 'Withdraw twice should fail');
+                    ok = true;
+                });
+                if( ! ok )
+                    assert.fail("Duplicate withdraw didn't fail!");
             }
 
             console.log("      Average Gas per Withdraw: " + (total_gas / i));

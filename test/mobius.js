@@ -144,7 +144,6 @@ contract('Mixer', (accounts) => {
             const point = RandomPoint();
             let result = await instance.Deposit(token, txValue, point.x, point.y, txObj);
             assert.ok(result.receipt.status, "Bad deposit status");
-
             total_gas += result.receipt.gasUsed;
 
             // Balance should increase by 1 Wei each deposit

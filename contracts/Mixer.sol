@@ -129,7 +129,7 @@ contract Mixer
     * Given a GUID of a full Ring, return the Message to sign
     */
     function Message (bytes32 ring_guid)
-        public returns (bytes32)
+        public view returns (bytes32)
     {
         Data storage entry = m_rings[ring_guid];
         LinkableRing.Data storage ring = entry.ring;
