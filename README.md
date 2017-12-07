@@ -4,7 +4,7 @@ Trustless Tumbling for Transaction Privacy
 
 ## Introduction
 
-Möbius is a Smart Contract that runs on Ethereum that offers trustless tumbling. The contract uses `secp256k1` and is applicable to private networks, due to the gas cost of running the contract. The contract will be ported to use `alt_bn128` making it applicable to the public network.
+Möbius is a Smart Contract that runs on Ethereum that offers trustless tumbling.
 
 ## White Paper
 
