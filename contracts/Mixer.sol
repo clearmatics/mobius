@@ -20,23 +20,23 @@ import './LinkableRing.sol';
 * can then be monitored using the following events which demarcate
 * the state transitions:
 *
-* RingDeposit
-*   For each Deposit a RingDeposit message is emitted, this includes
+* MixerDeposit
+*   For each Deposit a MixerDeposit message is emitted, this includes
 *   the Ring GUID, the X point of the Stealth Address, and the Token
 *   address and Denomination.
 *
-* RingReady
+* MixerReady
 *   When a Ring is full and withdrawals can be made a RingReady
 *   event is emitted, this includes the Ring GUID and the Message
 *   which must be signed to Withdraw.
 *
-* RingWithdraw
-*   For each Withdraw a RingWithdraw message is emitted, this includes
+* MixerWithdraw
+*   For each Withdraw a MixerWithdraw message is emitted, this includes
 *   the Token, Denomination, Ring GUID and Tag of the withdrawer.
 *
-* RingDead
+* MixerDead
 *   When all participants have withdrawn their tokens from a Ring the
-*   RingDead event is emitted, this specifies the Ring GUID.
+*   MixerDead event is emitted, this specifies the Ring GUID.
 */
 contract Mixer
 {
@@ -129,7 +129,7 @@ contract Mixer
     * Given a GUID of a full Ring, return the Message to sign
     */
     function Message (bytes32 ring_guid)
-        public returns (bytes32)
+        public view returns (bytes32)
     {
         Data storage entry = m_rings[ring_guid];
         LinkableRing.Data storage ring = entry.ring;
@@ -151,7 +151,7 @@ contract Mixer
         // TODO: verify token is a valid ERC-223 contract
 
         // Denomination must be positive power of 2, e.g. only 1 bit set
-        require( 0 == (denomination & (denomination - 1)) );
+        require( denomination != 0 && 0 == (denomination & (denomination - 1)) );
 
         // Public key can only exist in one ring at a time
         require( 0 == uint256(m_pubx_to_ring[pub_x]) );
