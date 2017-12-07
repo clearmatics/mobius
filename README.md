@@ -5,7 +5,9 @@ Trustless Tumbling for Transaction Privacy
 
 ## Introduction
 
-Möbius is a Smart Contract that runs on Ethereum that offers trustless autonomous tumbling using linkable ring signatures. *This proof of concept is still evolving and comes with the caveat that it should not be used for anything other than a technology demonstration.*
+Möbius is a Smart Contract that runs on Ethereum that offers trustless autonomous tumbling using linkable ring signatures.
+
+**This proof of concept is still evolving and comes with the caveat that it should not be used for anything other than a technology demonstration.**
 
 
 ## White Paper
@@ -17,7 +19,7 @@ Möbius is a Smart Contract that runs on Ethereum that offers trustless autonomo
 
 To tumble a token it is deposited into the [Mixer](contracts/Mixer.sol) smart contract by sending the token and the stealth public key of the receiver to the `Deposit` method.
 
-The Mixer contract places the token into an unfilled [Ring](contracts/Ring.sol) specific to that token and denomination and provides the GUID of the Ring. The current ring size is 4, so when 3 other people deposit the same denomination of token into the Mixer the Ring will have filled. Tokens can only be withdrawn when the Ring is full.
+The Mixer contract places the token into an unfilled [Ring](contracts/LinkableRing.sol) specific to that token and denomination and provides the GUID of the Ring. The current ring size is 4, so when 3 other people deposit the same denomination of token into the Mixer the Ring will have filled. Tokens can only be withdrawn when the Ring is full.
 
 The receiver then generates a linkable ring signature using their stealth private key, this signature and the Ring GUID is provided to the `Withdraw` method in exchange for the token.
 
@@ -62,7 +64,7 @@ This will compile the contract, deploy to the Ganache instance and run the tests
 
 #### Testing with Orbital
 
-The [orbital][6] tool is needed to generate the signatures and random keys for some of the tests. If `orbital` is in `$PATH` the `yarn test` command will run additional tests which verify the functionality of the Mixer contract using randomly generated keys instead of the fixed test cases.
+The [Orbital][6] tool is needed to generate the signatures and random keys for some of the tests. If `orbital` is in `$PATH` the `yarn test` command will run additional tests which verify the functionality of the Mixer contract using randomly generated keys instead of the fixed test cases.
 
 [1]: https://eprint.iacr.org/2017/881.pdf
 [2]: http://truffleframework.com/
