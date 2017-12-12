@@ -1,5 +1,8 @@
 language: node_js
-
+node_js:
+  - "iojs"
+  - "6"
+  
 matrix:
  include:
     - os: linux
