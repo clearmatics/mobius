@@ -6,7 +6,8 @@ matrix:
  include:
     - os: linux
       dist: trusty
-      script:
+      before_script:
         - yarn install
+      script:
         - yarn coverage        
 
