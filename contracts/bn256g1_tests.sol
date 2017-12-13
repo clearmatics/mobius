@@ -11,7 +11,7 @@ contract bn256g1_tests
 	using bn256g1 for bn256g1.Point;
 
 	function testOnCurve()
-		public returns (bool)
+		public view returns (bool)
 	{
 		var g = bn256g1.Generator();
 		require( g.IsOnCurve() );
@@ -29,7 +29,7 @@ contract bn256g1_tests
 	}
 
 	function testHashToPoint()
-		public returns (bool)
+		public view returns (bool)
 	{
 		var p = bn256g1.HashToPoint(sha256("hello world"));
 		require( p.IsOnCurve() );
@@ -42,7 +42,7 @@ contract bn256g1_tests
 	}
 
 	function testNegate()
-		public returns (bool)
+		public view returns (bool)
 	{
 		var g = bn256g1.Generator();
 		var x = g.PointAdd(g.Negate());
@@ -51,14 +51,14 @@ contract bn256g1_tests
 	}
 
 	function testIdentity()
-		public returns (bool)
+		public view returns (bool)
 	{
 		require( bn256g1.ScalarBaseMult(0).IsInfinity() );
 		return true;
 	}
 
 	function testEquality()
-		public returns (bool)
+		public view returns (bool)
 	{
 		var g = bn256g1.Generator();
 		var a = g.ScalarMult(9).PointAdd(g.ScalarMult(5));
@@ -68,7 +68,7 @@ contract bn256g1_tests
 	}
 
 	function testOrder()
-		public returns (bool)
+		public view returns (bool)
 	{
 		var z = bn256g1.ScalarBaseMult(bn256g1.GenOrder());
 		require( z.IsInfinity() );
@@ -80,7 +80,7 @@ contract bn256g1_tests
 	}
 
 	function testModExp()
-		public returns (bool)
+		public view returns (bool)
 	{
 		uint256 a;
 

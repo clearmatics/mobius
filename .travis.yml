@@ -1,0 +1,13 @@
+language: node_js
+node_js:
+  - "7"
+  
+matrix:
+ include:
+    - os: linux
+      dist: trusty
+      before_script:
+        - yarn install
+      script:
+        - yarn coverage        
+

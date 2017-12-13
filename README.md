@@ -1,5 +1,7 @@
 # Möbius
 
+[![Build Status](https://travis-ci.org/clearmatics/mobius.svg?branch=master)](https://travis-ci.org/clearmatics/mobius)
+
 Trustless Tumbling for Transaction Privacy
 
 
