@@ -228,7 +228,7 @@ library LinkableRing
     *   h, sum({c...}) = H(h, {(τ,a,b)...})
     */
     function _ringLink( uint256 previous_hash, uint256 cj, uint256 tj, Curve.Point tau, Curve.Point h, Curve.Point yj )
-        internal constant returns (uint256 ho)
+        internal view returns (uint256 ho)
     {       
         Curve.Point memory yc = yj.ScalarMult(cj);
 
