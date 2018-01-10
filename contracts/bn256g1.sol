@@ -133,7 +133,7 @@ library bn256g1
     *    A Note on Hashing to BN Curves
     */
     function HashToPoint(bytes32 s)
-        internal constant returns (Point)
+        internal view returns (Point)
     {
         uint256 beta = 0;
         uint256 y = 0;
@@ -162,7 +162,7 @@ library bn256g1
     * Returns: (x^3 + b), y
     */
     function FindYforX(uint256 x)
-        internal constant returns (uint256, uint256)
+        internal view returns (uint256, uint256)
     {
         // beta = (x^3 + b) % p
         uint256 beta = addmod(mulmod(mulmod(x, x, FIELD_ORDER), x, FIELD_ORDER), CURVE_B, FIELD_ORDER);
@@ -200,7 +200,7 @@ library bn256g1
     * Multiply the curve generator by a scalar
     */
     function ScalarBaseMult(uint256 x)
-        internal constant returns (Point r)
+        internal view returns (Point r)
     {
         return ScalarMult(Generator(), x);
     }
@@ -208,9 +208,9 @@ library bn256g1
 
     // sum of two points
     function PointAdd(Point p1, Point p2)
-        internal constant returns (Point r)
+        internal view returns (Point r)
     {
-        uint[4] memory input;
+        uint256[4] memory input;
         input[0] = p1.X;
         input[1] = p1.Y;
         input[2] = p2.X;
@@ -226,10 +226,10 @@ library bn256g1
 
 
     // Multiply point by a scalar
-    function ScalarMult(Point p, uint s)
-        internal constant returns (Point r)
+    function ScalarMult(Point p, uint256 s)
+        internal view returns (Point r)
     {
-        uint[3] memory input;
+        uint256[3] memory input;
         input[0] = p.X;
         input[1] = p.Y;
         input[2] = s;
@@ -244,11 +244,11 @@ library bn256g1
 
 
     function expMod(uint256 _base, uint256 _exponent, uint256 _modulus)
-        internal constant returns (uint256 retval)
+        internal view returns (uint256 retval)
     {
         bool success;
         uint256[1] memory output;
-        uint[6] memory input;
+        uint256[6] memory input;
         input[0] = 0x20;        // baseLen = new(big.Int).SetBytes(getData(input, 0, 32))
         input[1] = 0x20;        // expLen  = new(big.Int).SetBytes(getData(input, 32, 32))
         input[2] = 0x20;        // modLen  = new(big.Int).SetBytes(getData(input, 64, 32))
