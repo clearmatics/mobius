@@ -210,7 +210,7 @@ library bn256g1
     function PointAdd(Point p1, Point p2)
         internal constant returns (Point r)
     {
-        uint[4] memory input;
+        uint256[4] memory input;
         input[0] = p1.X;
         input[1] = p1.Y;
         input[2] = p2.X;
@@ -226,10 +226,10 @@ library bn256g1
 
 
     // Multiply point by a scalar
-    function ScalarMult(Point p, uint s)
+    function ScalarMult(Point p, uint256 s)
         internal constant returns (Point r)
     {
-        uint[3] memory input;
+        uint256[3] memory input;
         input[0] = p.X;
         input[1] = p.Y;
         input[2] = s;
@@ -248,7 +248,7 @@ library bn256g1
     {
         bool success;
         uint256[1] memory output;
-        uint[6] memory input;
+        uint256[6] memory input;
         input[0] = 0x20;        // baseLen = new(big.Int).SetBytes(getData(input, 0, 32))
         input[1] = 0x20;        // expLen  = new(big.Int).SetBytes(getData(input, 32, 32))
         input[2] = 0x20;        // modLen  = new(big.Int).SetBytes(getData(input, 64, 32))
