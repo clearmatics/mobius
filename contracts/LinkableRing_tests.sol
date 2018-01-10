@@ -13,6 +13,12 @@ contract LinkableRing_tests
 
 	LinkableRing.Data internal m_ring;
 
+	function LinkableRing_tests()
+        public
+    {
+        // Nothing ...
+    }
+
 	function testInit ()
 		public returns (bool)
 	{

@@ -5,9 +5,9 @@ const Mixer = artifacts.require("./Mixer.sol");
 const bn256g1_tests = artifacts.require("./bn256g1_tests.sol");
 
 module.exports = (deployer) => {
-  deployer.deploy(bn256g1_tests, 4, 100000000000000000, 0);
+  deployer.deploy(bn256g1_tests);
 
-  deployer.deploy(Ring_tests, 4, 100000000000000000, 0);
+  deployer.deploy(Ring_tests);
 
-  deployer.deploy(Mixer, 4, 100000000000000000, 0);
+  deployer.deploy(Mixer);
 };
