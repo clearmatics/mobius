@@ -91,6 +91,13 @@ contract Mixer
     event MixerDead( bytes32 indexed ring_id );
 
 
+    function Mixer()
+        public
+    {
+        // Nothing ...
+    }
+
+
     /**
     * Lookup an unfilled/filling ring for a given token and denomination,
     * this will create a new unfilled ring if none exists. When the ring
@@ -149,6 +156,9 @@ contract Mixer
         public payable returns (bytes32)
     {      
         // TODO: verify token is a valid ERC-223 contract
+
+        require( token == 0 );
+        require( denomination == msg.value );
 
         // Denomination must be positive power of 2, e.g. only 1 bit set
         require( denomination != 0 && 0 == (denomination & (denomination - 1)) );
