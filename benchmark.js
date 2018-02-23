@@ -75,6 +75,7 @@ function getTime() {
   return Date.now();
 }
 
+/** Computes the average values of an array **/
 function getAverage(values) {
     assert(typeof(values) === typeof([]));
 
@@ -362,7 +363,6 @@ contract('Mixer', (accounts) => {
                 gasCostArray.push(result.gasUsed);
             }
 
-            // After a ring is filled (ie: all Deposit have been made), we analyze the data
             ringResult.push({time: timeArray, gas: gasCostArray});
         }
 
@@ -384,8 +384,6 @@ contract('Mixer', (accounts) => {
 
             ringResult.push(result);
         }
-
-        // After a ring is filled (ie: all Deposit have been made), we analyze the data
 
         parseWithdrawBenchmarkResults(ringResult);
 
