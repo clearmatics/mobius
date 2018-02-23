@@ -203,6 +203,34 @@ async function makeDeposit(mixerInstance, fromAccount, pubX, pubY) {
     return {timeSpent: timeSpent, gasUsed: gasUsed, ringGuid: depositEvent.args.ring_id, ringMsg: (readyEvent)? readyEvent.args.message : null};
 }
 
+async function makeDummyDeposit(mixerInstance, fromAccount, pubX, pubY) {
+    // Deposit 1 Wei into mixer
+    const txValue = 1;
+    const token = 0; // 0 = ether
+    const txObj = { from: fromAccount, value: txValue };
+
+    // Start the timer
+    var timeBegin = getTime();
+
+    let result = await mixerInstance.DummyDeposit(token, txValue, pubX, pubY, txObj);
+
+    // End the timer
+    var timeEnd = getTime();
+
+    var timeSpent = timeEnd - timeBegin;
+    var gasUsed = result.receipt.gasUsed;
+
+    const depositEvent = result.logs.find(el => (el.event === 'MixerReceivedEther'));
+    if (depositEvent) {
+      console.log("> Handled MixerReceivedEther Event");
+    }
+
+    console.log("==== TIME taken: " + timeSpent.toString() + "ms ====");
+    console.log("==== GAS used: " + gasUsed.toString() + " gas ====\n");
+
+    return {timeSpent: timeSpent, gasUsed: gasUsed};
+}
+
 async function makeWithdrawal(mixerInstance, ringGuid, tau, ctlist) {
 
     // Start the timer
@@ -273,20 +301,36 @@ contract('Mixer', (accounts) => {
     var numberOfRings = 2;
     const ringSize = 4;
 
-    it('Benchmark: Average Performances of a regular transaction between accounts', async () => {
+    it('Benchmark: Average Performances of an ether transfer', async () => {
 
         // Analysis variables
-        var transactionResult = [];
+        let instance = await Mixer.deployed();
+        var keys = JSONBigInt.parse(orbitalGenerateKeys(1));
 
-        // Start the timer
-        var timeBegin = getTime();
+        var results = [];
+        for (var i = 0; i < numberOfRings; i++) {
+            let result = await makeDummyDeposit(instance, accounts[0], keys.pubkeys[0].x, keys.pubkeys[0].y)
+            results.push(result);
+        }
 
-        web3.eth.sendTransaction({from: accounts[0], to: accounts[1], value: 1});
-        // End the timer
-        var timeEnd = getTime();
+        console.log("\n=============================================================")
+        console.log("\n======= Starting withdrawal benchmark result analysis =======\n")
+        console.log("=============================================================\n")
 
-        var timeSpent = timeEnd - timeBegin;
-        console.log(timeSpent);
+        var totalTime = 0;
+        var totalGas = 0;
+        for (var i = 0; i < results.length; i++) {
+            totalTime += results[i].timeSpent;
+            totalGas += results[i].gasUsed;
+        }
+
+        var averageTime = parseInt(totalTime/results.length);
+        var averageGas = parseInt(totalGas/results.length);
+
+        console.log("==== Stats of an ether transfer to contract only' ====");
+        console.log("> Average Time: " + averageTime + "ms");
+        console.log("> Average Gas cost: " + averageGas + " gas\n");
+
     });
 
     it('Benchmark: Average Performances of a Deposit to the Mixer', async () => {

@@ -70,6 +70,8 @@ contract Mixer
         uint256 value
     );
 
+    event MixerReceivedEther();
+
     /**
     * Token has been withdraw from a Mixer Ring
     */
@@ -145,6 +147,21 @@ contract Mixer
         require( 0 != entry.denomination );
 
         return ring.Message();
+    }
+
+
+    /**
+    * DummyDeposit function used for benchmark testing of single ether transfer
+    * as comparison to 'real' deposit function
+    * Emits event to assert successful transfer of funds
+    */
+    function DummyDeposit (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
+    public payable returns (bytes32)
+    {
+        require( msg.value > 0 );
+        MixerReceivedEther();
+
+        return 123456;
     }
 
 
