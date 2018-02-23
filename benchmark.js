@@ -44,182 +44,309 @@ function orbitalGenerateKeys (number) {
     return orbital(['generate', '-n', number.toString()]);
 }
 
-function getTimer() {
+async function writeToTemp(data) {
+    var tmp_file = tmp.fileSync();
+    await new Promise((resolve, reject) => {
+        fs.write(tmp_file.fd, JSON.stringify(data), (err) => {
+            if( err )
+                reject(err);
+            else {
+                resolve();
+            }
+        });
+    });
+    return tmp_file;
+}
+
+async function generateAndVerifySignature(keys, ringMsg) {
+    var keys_file = await writeToTemp(keys);
+    const inputs_txt = orbital(['inputs', '-k', keys_file.name, '-n', '4', '-m', ringMsg.substr(2)]);
+    const inputs = JSON.parse(inputs_txt);
+
+    // Verify signatures validate in orbital tool
+    var inputs_file = await writeToTemp(inputs);
+    const inputs_verified = orbital(['verify', '-f', inputs_file.name, '-m', ringMsg.substr(2)]);
+    assert.equal(inputs_verified, "Signatures verified", "Orbital could not verify signatures");
+
+    return inputs;
+}
+
+function getTime() {
   return Date.now();
 }
 
-function getResult(timeMatrix, gasMatrix) {
-  var depositAndCreateTimeArray = [];
-  var depositAndCreateGasArray = [];
-  var depositAndMixerReadyTimeArray = [];
-  var depositAndMixerReadyGasArray = [];
-  for (var i = 0; i < timeMatrix.length; i++) {
-    depositAndCreateTimeArray.push(timeMatrix[i][0]);
-    depositAndCreateGasArray.push(gasMatrix[i][0]);
-    depositAndMixerReadyTimeArray.push(timeMatrix[i].pop());
-    depositAndMixerReadyGasArray.push(gasMatrix[i].pop());
-  }
+function getAverage(values) {
+    assert(typeof(values) === typeof([]));
 
-  var depositOnlyTimeArray = [];
-  var depositOnlyGasArray = [];
+    var itemsNo = values.length;
+    var sum = 0;
 
-  var averageTimeDepositAndCreate = getAverage(depositAndCreateTimeArray);
-  var averageTimeDepositAndMixerReady = getAverage(depositAndMixerReadyTimeArray);
-  var averageTimeDepositOnly = getAverage(depositOnlyTimeArray);
+    for (var i in values) {
+        sum += values[i];
+    }
 
-  var averageGasDepositAndCreate = getAverage(depositAndCreateGasArray);
-  var averageGasDepositAndMixerReady = getAverage(depositAndMixerReadyGasArray);
-  var averageGasDepositOnly = getAverage(depositOnlyGasArray);
+    return parseInt(sum/itemsNo);
+}
 
-  // TODO: Write in a file instead of console.log()
-  console.log("Number of Deposit done: " + numberOfDeposits);
+function parseDepositBenchmarkResults(ringResult) {
+    console.log("\n==========================================================")
+    console.log("\n======= Starting deposit benchmark result analysis =======\n");
+    console.log("==========================================================\n");
 
-  console.log("==== Stats of the first deposit to the mixer (which creates a ring of the specified denomination) ====");
-  console.log("> Average Time: " + averageTimeDepositAndCreate + "ms");
-  console.log("> Average Gas cost: " + averageGasDepositAndCreate + " gas\n");
+    var depositAndCreateTimeArray = [];
+    var depositAndCreateGasArray = [];
 
-  console.log("==== Stats of the last deposit to the mixer (which creates a mixer ready event) ====");
-  console.log("> Average Time: " + averageTimeDepositAndMixerReady + "ms");
-  console.log("> Average Gas cost: " + averageGasDepositAndMixerReady + " gas\n");
+    var depositOnlyTimeArray = [];
+    var depositOnlyGasArray = [];
 
-  console.log("==== Stats of a 'deposit only' ====");
-  console.log("> Average Time: " + averageTimeDepositOnly + "ms");
-  console.log("> Average Gas cost: " + averageGasDepositOnly + " gas\n");
+    var depositAndMixerReadyTimeArray = [];
+    var depositAndMixerReadyGasArray = [];
+
+    var numberOfDeposits = 0;
+
+    for (var i in ringResult) {
+        var data = ringResult[i];
+        numberOfDeposits += data.time.length;
+
+        depositAndCreateTimeArray.push(data.time[0]);
+        depositAndCreateGasArray.push(data.gas[0]);
+
+        depositAndMixerReadyTimeArray.push(data.time.pop());
+        depositAndMixerReadyGasArray.push(data.gas.pop());
+
+        depositOnlyTimeArray.push.apply(depositOnlyTimeArray, data.time.slice(1, data.time.length));
+        depositOnlyGasArray.push.apply(depositOnlyGasArray, data.gas.slice(1, data.gas.length));
+    }
+
+    var averageTimeDepositAndCreate = getAverage(depositAndCreateTimeArray);
+    var averageTimeDepositAndMixerReady = getAverage(depositAndMixerReadyTimeArray);
+    var averageTimeDepositOnly = getAverage(depositOnlyTimeArray);
+
+    var averageGasDepositAndCreate = getAverage(depositAndCreateGasArray);
+    var averageGasDepositAndMixerReady = getAverage(depositAndMixerReadyGasArray);
+    var averageGasDepositOnly = getAverage(depositOnlyGasArray);
+
+    // TODO: Write in a file instead of console.log()
+    console.log("Number of Deposit done: " + numberOfDeposits);
+
+    console.log("==== Stats of the first deposit to the mixer (which creates a ring of the specified denomination) ====");
+    console.log("> Average Time: " + averageTimeDepositAndCreate + "ms");
+    console.log("> Average Gas cost: " + averageGasDepositAndCreate + " gas\n");
+
+    console.log("==== Stats of the last deposit to the mixer (which creates a mixer ready event) ====");
+    console.log("> Average Time: " + averageTimeDepositAndMixerReady + "ms");
+    console.log("> Average Gas cost: " + averageGasDepositAndMixerReady + " gas\n");
+
+    console.log("==== Stats of a 'deposit only' ====");
+    console.log("> Average Time: " + averageTimeDepositOnly + "ms");
+    console.log("> Average Gas cost: " + averageGasDepositOnly + " gas\n");
+}
+
+function parseWithdrawBenchmarkResults(ringResult) {
+    console.log("\n=============================================================")
+    console.log("\n======= Starting withdrawal benchmark result analysis =======\n")
+    console.log("=============================================================\n")
+
+    var numberOfWithdrawals = 0;
+
+    var withdrawalTimes = [];
+    var withdrawalGas = [];
+
+    for (var i in ringResult) {
+        var data = ringResult[i];
+        numberOfWithdrawals += data.time.length;
+
+        withdrawalTimes.push.apply(withdrawalTimes, data.time);
+        withdrawalGas.push.apply(withdrawalGas, data.gas);
+    }
+
+    var averageWithdrawalTime = getAverage(withdrawalTimes);
+    var averageWithdrawalGas = getAverage(withdrawalGas);
+
+    // TODO: Write in a file instead of console.log()
+    console.log("Number of Withdrawals done: " + numberOfWithdrawals);
+
+    console.log("==== Stats of Withdrawals ====");
+    console.log("> Average Time: " + averageWithdrawalTime + "ms");
+    console.log("> Average Gas cost: " + averageWithdrawalGas + " gas\n");
+}
+
+async function makeDeposit(mixerInstance, fromAccount, pubX, pubY) {
+    // Deposit 1 Wei into mixer
+    const txValue = 1;
+    const token = 0; // 0 = ether
+    const txObj = { from: fromAccount, value: txValue };
+
+    // Start the timer
+    var timeBegin = getTime();
+
+    let result = await mixerInstance.Deposit(token, txValue, pubX, pubY, txObj);
+
+    // End the timer
+    var timeEnd = getTime();
+
+    var timeSpent = timeEnd - timeBegin;
+    var gasUsed = result.receipt.gasUsed;
+
+    const depositEvent = result.logs.find(el => (el.event === 'MixerDeposit'));
+    if (depositEvent) {
+      console.log("> Handled MixerDeposit Event");
+    }
+    const readyEvent = result.logs.find(el => (el.event === 'MixerReady'));
+    if (readyEvent) {
+      console.log("> Handled MixerReady Event ");
+    }
+
+    console.log("==== TIME taken: " + timeSpent.toString() + "ms ====");
+    console.log("==== GAS used: " + gasUsed.toString() + " gas ====\n");
+
+    return {timeSpent: timeSpent, gasUsed: gasUsed, ringGuid: depositEvent.args.ring_id, ringMsg: (readyEvent)? readyEvent.args.message : null};
+}
+
+async function makeWithdrawal(mixerInstance, ringGuid, tau, ctlist) {
+
+    // Start the timer
+    var timeBegin = getTime();
+
+    let result = await mixerInstance.Withdraw(ringGuid, tau.x, tau.y, ctlist);
+
+    // End the timer
+    var timeEnd = getTime();
+
+    var timeSpent = timeEnd - timeBegin;
+    var gasUsed = result.receipt.gasUsed;
+
+    const withdrawEvent = result.logs.find(el => (el.event === 'MixerWithdraw'));
+    if (withdrawEvent) { console.log("> Handled MixerWithdraw Event"); }
+
+    console.log("==== TIME taken: " + timeSpent.toString() + "ms ====");
+    console.log("==== GAS used: " + gasUsed.toString() + " gas ====\n");
+
+    return {timeSpent: timeSpent, gasUsed: gasUsed};
+}
+
+async function depositAndWithdraw(mixerInstance, accounts){
+    // Generate as many keys as the size of the ring, to fill it entirely
+    const ringSize = 4;
+    var keys = JSONBigInt.parse(orbitalGenerateKeys(ringSize));
+
+    // Record the time and gas measurments in arrays in order to do some advanced stats
+    var ringGuid;
+    var ringMsg;
+
+    for (var k = 0; k < ringSize; k++) {
+        const pubkey = keys.pubkeys[k];
+
+        let result = await makeDeposit(mixerInstance, accounts[0], pubkey.x, pubkey.y);
+
+        // Add the measurments to the arrays
+        ringGuid = result.ringGuid;
+        ringMsg = result.ringMsg;
+    }
+
+    console.log("Ring ID = " + ringGuid.toString());
+    console.log("Ring MESSAGE = " + ringMsg.toString());
+
+    // Withdrawals
+    // Generate inputs from ring keys
+    const inputs = await generateAndVerifySignature(keys, ringMsg);
+
+    // Then perform all the withdraws
+    var timeArray = [];
+    var gasCostArray = [];
+    console.log("\nMaking withdrawals");
+    for (var j = 0; j < inputs.signatures.length; j++) {
+        const sig = inputs.signatures[j];
+        const tau = sig.tau;
+        const ctlist = sig.ctlist;
+
+        let result = await makeWithdrawal(mixerInstance, ringGuid, tau, ctlist);
+
+        timeArray.push(result.timeSpent);
+        gasCostArray.push(result.gasUsed);
+    }
+
+    return {time: timeArray, gas: gasCostArray};
 }
 
 contract('Mixer', (accounts) => {
-    async function writeToTemp(data) {
-        var tmp_file = tmp.fileSync();
-        await new Promise((resolve, reject) => {
-            fs.write(tmp_file.fd, JSON.stringify(data), (err) => {
-                if( err )
-                    reject(err);
-                else {
-                    resolve();
-                }
-            });
-        });
-        return tmp_file;
-    }
+    var numberOfRings = 2;
+    const ringSize = 4;
 
-    it('Benchmark: Average Performances of a Deposit to the Mixer', async () => {
-        // Deposit 1 Wei into mixer
-        const txValue = 1;
-        const owner = accounts[0];
-        const token = 0; // 0 = ether
-        const txObj = { from: owner, value: txValue };
+    it('Benchmark: Average Performances of a regular transaction between accounts', async () => {
 
         // Analysis variables
-        var timeMatrix = [];
-        var gasMatrix = [];
+        var transactionResult = [];
+
+        // Start the timer
+        var timeBegin = getTime();
+
+        web3.eth.sendTransaction({from: accounts[0], to: accounts[1], value: 1});
+        // End the timer
+        var timeEnd = getTime();
+
+        var timeSpent = timeEnd - timeBegin;
+        console.log(timeSpent);
+    });
+
+    it('Benchmark: Average Performances of a Deposit to the Mixer', async () => {
+
+        // Analysis variables
+        var ringResult = [];
 
         // Using the Truffle contract abstraction
         let instance = await Mixer.deployed();
 
         // The number of rings to fill during this benchmark
-        var numberOfRings = 2;
         for (var i = 0; i < numberOfRings; i++) {
+            console.log("\n==== Starting deposit benchmark for ring number " + (i + 1).toString() + " ====\n");
 
-          // Generate as many keys as the size of the ring, to fill it entirely
-          const ringSize = 10;
-          var keys = JSONBigInt.parse(orbitalGenerateKeys(ringSize));
+            // Generate as many keys as the size of the ring, to fill it entirely
+            var keys = JSONBigInt.parse(orbitalGenerateKeys(ringSize));
 
-          // Record the time and gas measurments in arrays in order to do some advanced stats
-          var timeArray = [];
-          var gasCostArray = [];
+            // Record the time and gas measurments in arrays in order to do some advanced stats
+            var timeArray = [];
+            var gasCostArray = [];
 
-          for (var k = 0; k < ringSize; k++) {
-            const pubkey = keys.pubkeys[k];
+            for (var k = 0; k < ringSize; k++) {
+                const pubkey = keys.pubkeys[k];
 
-            // Start the timer
-            var timeBegin = getTimer();
+                let result = await makeDeposit(instance, accounts[0], pubkey.x, pubkey.y);
 
-            let result = await instance.Deposit(token, txValue, pubkey.x, pubkey.y, txObj);
-
-            // End the timer
-            var timeEnd = getTimer();
-
-            var timeOfDeposit = timeEnd - timeBegin;
-            var gasUsed = result.receipt.gasUsed;
-
-            // Add the measurments to the arrays
-            timeArray.push(timeOfDeposit);
-            gasCostArray.push(gasUsed);
-
-            const depositEvent = result.logs.find(el => (el.event === 'MixerDeposit'));
-            if (depositEvent) {
-              console.log("> Handled MixerDeposit Event");
-            }
-            const readyEvent = result.logs.find(el => (el.event === 'MixerReady'));
-            if (readyEvent) {
-              console.log("> Handled MixerReady Event ");
+                // Add the measurments to the arrays
+                timeArray.push(result.timeSpent);
+                gasCostArray.push(result.gasUsed);
             }
 
-            console.log("==== TIME taken: " + timeOfDeposit.toString() + "ms ====");
-            console.log("==== GAS used: " + gasUsed.toString() + "gas ====\n");
-          }
-
-          // After a ring is filled (ie: all Deposit have been made), we analyze the data
-          timeMatrix.push(timeArray);
-          gasMatrix.push(gasCostArray);
+            // After a ring is filled (ie: all Deposit have been made), we analyze the data
+            ringResult.push({time: timeArray, gas: gasCostArray});
         }
 
-        // TODO: getResult(timeMatrix, gasMatrix);
+        parseDepositBenchmarkResults(ringResult);
 
+    });
 
-        // Withdrawals
-        //// Generate inputs from ring keys
-        //const inputs_txt = orbital(['inputs', '-k', keys_file.name, '-n', '4', '-m', ring_msg]);
-        //const inputs = JSON.parse(inputs_txt);
+    it('Benchmark: Average Performances of a Withdrawal to the Mixer', async () => {
 
-        //// Verify signatures validate in orbital tool
-        //var inputs_file = await writeToTemp(inputs);
-        //const inputs_verified = orbital(['verify', '-f', inputs_file.name, '-m', ring_msg]);
-        //assert.equal(inputs_verified, "Signatures verified", "Orbital could not verify signatures");
+        // Analysis variables
+        var ringResult = [];
 
-        //// Then perform all the withdraws
-        //var result = null;
-        //var total_gas = 0;
-        //var i = 0;
-        //for( var k in inputs.signatures ) {
-        //    i++;
+        // Using the Truffle contract abstraction
+        let instance = await Mixer.deployed();
 
-        //    // Verify the withdraw signature works
-        //    const sig = inputs.signatures[k];
-        //    const tau = sig.tau;
-        //    const ctlist = sig.ctlist;
-        //    result = await instance.Withdraw(ring_guid, tau.x, tau.y, ctlist);
-        //    console.log("Finished Withdrawal number " + i.toString());
+        // The number of rings to fill during this benchmark
+        var numberOfRings = 5;
 
-        //    const withdrawEvent = result.logs.find(el => (el.event === 'MixerWithdraw'));
-        //    if (withdrawEvent) { console.log("Withdraw Event"); }
-        //    assert.ok(result.receipt.status, "Bad withdraw status");
-        //    total_gas += result.receipt.gasUsed;
+        for (var i = 0; i < numberOfRings; i++) {
+            console.log("\n==== Starting withdraw benchmark for ring number " + (i + 1).toString() + " ====\n");
+            let result = await depositAndWithdraw(instance, accounts);
 
-        //    // Verify same signature can't withdraw twice
-        //    var ok = false;
-        //    await instance.Withdraw(ring_guid, tau.x, tau.y, ctlist).catch(function(err) {
-        //        assert.include(err.message, 'revert', 'Withdraw twice should fail');
-        //        ok = true;
-        //    });
-        //    if( ! ok )
-        //        assert.fail("Duplicate withdraw didn't fail!");
-        //}
+            ringResult.push(result);
+        }
 
-        //console.log("      Average Gas per Withdraw: " + (total_gas / i));
+        // After a ring is filled (ie: all Deposit have been made), we analyze the data
 
-        //// Verify the Ring is dead
-        //const expectedMixerDead = result.logs.some(el => (el.event === 'MixerDead'));
-        //assert.ok(expectedMixerDead, "Last Withdraw should emit MixerDead event");
-        //const deadEvent = result.logs.find(el => (el.event === 'MixerDead'));
-        //assert.equal(deadEvent.args.ring_id.toString(), ring_guid, "Ring GUID batch doesn't match in MixerDead");
-
-        //// And that all money has been withdrawn
-        //const finishBalance = web3.eth.getBalance(instance.address);
-        //assert.equal(finishBalance.toString(), initialBalance.toString(), "Finish balance should be same as initial balance");
-
-        //inputs_file.removeCallback();
-        //keys_file.removeCallback();
+        parseWithdrawBenchmarkResults(ringResult);
 
     });
 });
