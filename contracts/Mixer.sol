@@ -70,7 +70,10 @@ contract Mixer
         uint256 value
     );
 
-    event MixerReceivedEther();
+    /**
+    * Benchmarking Event
+    */
+    event MixerDummyDeposit();
 
     /**
     * Token has been withdraw from a Mixer Ring
@@ -159,7 +162,7 @@ contract Mixer
     public payable returns (bytes32)
     {
         require( msg.value > 0 );
-        MixerReceivedEther();
+        MixerDummyDeposit();
 
         return 123456;
     }
