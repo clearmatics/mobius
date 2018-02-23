@@ -298,7 +298,7 @@ async function depositAndWithdraw(mixerInstance, accounts){
 }
 
 contract('Mixer', (accounts) => {
-    var numberOfRings = 2;
+    var numberOfRings = 5;
     const ringSize = 4;
 
     it('Benchmark: Average Performances of an ether transfer', async () => {
@@ -377,9 +377,6 @@ contract('Mixer', (accounts) => {
 
         // Using the Truffle contract abstraction
         let instance = await Mixer.deployed();
-
-        // The number of rings to fill during this benchmark
-        var numberOfRings = 5;
 
         for (var i = 0; i < numberOfRings; i++) {
             console.log("\n==== Starting withdraw benchmark for ring number " + (i + 1).toString() + " ====\n");
