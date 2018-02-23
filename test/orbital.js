@@ -98,7 +98,7 @@ if( orbitalPath ) {
             assert.equal(contractBalance.toString(), initialBalance.add(txValue * k).toString());
 
             // Generate inputs from ring keys
-            const inputs_txt = orbital(['inputs', '-k', keys_file.name, '-n', '4', '-m', ring_msg]);
+            const inputs_txt = orbital(['inputs', '-f', keys_file.name, '-n', '4', '-m', ring_msg]);
             const inputs = JSON.parse(inputs_txt);
 
             // Verify signatures validate in orbital tool
