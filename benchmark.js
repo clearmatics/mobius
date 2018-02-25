@@ -9,9 +9,18 @@ const { execSync } = require('child_process');
 const tmp = require("tmp");
 const JSONBigInt = require('json-bigint-string');
 
+// Truffle contract abstractions
 const Mixer = artifacts.require("./Mixer.sol");
+const BenchmarkMixer = artifacts.require("./BenchmarkMixer.sol");
 
-/** Implements functionality similar to the 'which' shell command */
+// Global constants used in the benchmark (The ring size has to match the RING_SIZE var in LinkableRing.sol)
+const ringSize = 4;
+const numberOfRings = 3;
+
+// Global variable that contains the result of each tests
+var resultOfTheBenchmark = {};
+
+/** Implements functionality similar to the 'which' shell command **/
 function which (name, defaultPath) {
     var X;
     try {
@@ -23,7 +32,7 @@ function which (name, defaultPath) {
     return X.trim("\n");
 }
 
-/** Filesystem path of the 'orbital' command line tool */
+/** Filesystem path of the 'orbital' command line tool **/
 const defaultOrbitalBinPath = "/home/user/go/src/github.com/clearmatics/orbital/orbital";
 function findOrbital () {
     var foundWithWhich = which("orbital", defaultOrbitalBinPath);
@@ -33,7 +42,7 @@ function findOrbital () {
     return foundWithWhich;
 }
 
-/** Execute `orbital` command, with array of arguments */
+/** Execute `orbital` command, with array of arguments **/
 const orbitalPath = findOrbital();
 function orbital (args) {
     return execSync(shellescape([orbitalPath].concat(args))).toString().trim("\n");
@@ -89,87 +98,37 @@ function getAverage(values) {
     return parseInt(sum/itemsNo);
 }
 
-function parseDepositBenchmarkResults(ringResult) {
-    console.log("\n==========================================================")
-    console.log("\n======= Starting deposit benchmark result analysis =======\n");
-    console.log("==========================================================\n");
+/** computeMatrixMean takes a matrix as argument which is intepreted as a set of arrays
+ * The function returns an array which values are the mean of the the set of values of
+ * same indexin the set of arrays composing the matrix.
+ **/
+function computeMatrixMean(matrix) {
+  var nbLines = matrix.length; // Number of arrays composing the matrix
+  if (nbLines <= 0) {
+    console.error("Invalid dimension for the matrix");
+    return null;
+  }
 
-    var depositAndCreateTimeArray = [];
-    var depositAndCreateGasArray = [];
+  var nbColumns = matrix[0].length; // Number of elements of the first array. We assume that all arrays have the same length
 
-    var depositOnlyTimeArray = [];
-    var depositOnlyGasArray = [];
-
-    var depositAndMixerReadyTimeArray = [];
-    var depositAndMixerReadyGasArray = [];
-
-    var numberOfDeposits = 0;
-
-    for (var i in ringResult) {
-        var data = ringResult[i];
-        numberOfDeposits += data.time.length;
-
-        depositAndCreateTimeArray.push(data.time[0]);
-        depositAndCreateGasArray.push(data.gas[0]);
-
-        depositAndMixerReadyTimeArray.push(data.time.pop());
-        depositAndMixerReadyGasArray.push(data.gas.pop());
-
-        depositOnlyTimeArray.push.apply(depositOnlyTimeArray, data.time.slice(1, data.time.length));
-        depositOnlyGasArray.push.apply(depositOnlyGasArray, data.gas.slice(1, data.gas.length));
+  var meanArray = [];
+  for (var c = 0; c < nbColumns; c++) {
+    temp = [];
+    for (var l = 0; l < nbLines; l++) {
+      temp.push(matrix[l][c]);
     }
+    var meanIndex = getAverage(temp);
+    meanArray.push(meanIndex);
+  }
 
-    var averageTimeDepositAndCreate = getAverage(depositAndCreateTimeArray);
-    var averageTimeDepositAndMixerReady = getAverage(depositAndMixerReadyTimeArray);
-    var averageTimeDepositOnly = getAverage(depositOnlyTimeArray);
-
-    var averageGasDepositAndCreate = getAverage(depositAndCreateGasArray);
-    var averageGasDepositAndMixerReady = getAverage(depositAndMixerReadyGasArray);
-    var averageGasDepositOnly = getAverage(depositOnlyGasArray);
-
-    // TODO: Write in a file instead of console.log()
-    console.log("Number of Deposit done: " + numberOfDeposits);
-
-    console.log("==== Stats of the first deposit to the mixer (which creates a ring of the specified denomination) ====");
-    console.log("> Average Time: " + averageTimeDepositAndCreate + "ms");
-    console.log("> Average Gas cost: " + averageGasDepositAndCreate + " gas\n");
-
-    console.log("==== Stats of the last deposit to the mixer (which creates a mixer ready event) ====");
-    console.log("> Average Time: " + averageTimeDepositAndMixerReady + "ms");
-    console.log("> Average Gas cost: " + averageGasDepositAndMixerReady + " gas\n");
-
-    console.log("==== Stats of a 'deposit only' ====");
-    console.log("> Average Time: " + averageTimeDepositOnly + "ms");
-    console.log("> Average Gas cost: " + averageGasDepositOnly + " gas\n");
+  return meanArray;
 }
 
-function parseWithdrawBenchmarkResults(ringResult) {
-    console.log("\n=============================================================")
-    console.log("\n======= Starting withdrawal benchmark result analysis =======\n")
-    console.log("=============================================================\n")
+function getBenchmarkAnalysis(timeMatrix, gasMatrix) {
+  var averageTimeArray = computeMatrixMean(timeMatrix);
+  var averageGasArray = computeMatrixMean(gasMatrix);
 
-    var numberOfWithdrawals = 0;
-
-    var withdrawalTimes = [];
-    var withdrawalGas = [];
-
-    for (var i in ringResult) {
-        var data = ringResult[i];
-        numberOfWithdrawals += data.time.length;
-
-        withdrawalTimes.push.apply(withdrawalTimes, data.time);
-        withdrawalGas.push.apply(withdrawalGas, data.gas);
-    }
-
-    var averageWithdrawalTime = getAverage(withdrawalTimes);
-    var averageWithdrawalGas = getAverage(withdrawalGas);
-
-    // TODO: Write in a file instead of console.log()
-    console.log("Number of Withdrawals done: " + numberOfWithdrawals);
-
-    console.log("==== Stats of Withdrawals ====");
-    console.log("> Average Time: " + averageWithdrawalTime + "ms");
-    console.log("> Average Gas cost: " + averageWithdrawalGas + " gas\n");
+  return {timeArray: averageTimeArray, gasArray: averageGasArray};
 }
 
 async function makeDeposit(mixerInstance, fromAccount, pubX, pubY) {
@@ -201,19 +160,23 @@ async function makeDeposit(mixerInstance, fromAccount, pubX, pubY) {
     console.log("==== TIME taken: " + timeSpent.toString() + "ms ====");
     console.log("==== GAS used: " + gasUsed.toString() + " gas ====\n");
 
-    return {timeSpent: timeSpent, gasUsed: gasUsed, ringGuid: depositEvent.args.ring_id, ringMsg: (readyEvent)? readyEvent.args.message : null};
+    return {
+      timeSpent: timeSpent,
+      gasUsed: gasUsed,
+      ringGuid: depositEvent.args.ring_id,
+      ringMsg: (readyEvent)? readyEvent.args.message : null
+    };
 }
 
-async function makeDummyDeposit(mixerInstance, fromAccount, pubX, pubY) {
-    // Deposit 1 Wei into mixer
+async function makeBenchmarkDeposit(benchmarkMixerInstance, fromAccount, pubX, pubY) {
     const txValue = 1;
-    const token = 0; // 0 = ether
+    const token = 0;
     const txObj = { from: fromAccount, value: txValue };
 
     // Start the timer
     var timeBegin = getTime();
 
-    let result = await mixerInstance.DummyDeposit(token, txValue, pubX, pubY, txObj);
+    let result = await benchmarkMixerInstance.BenchmarkDeposit(token, txValue, pubX, pubY, txObj);
 
     // End the timer
     var timeEnd = getTime();
@@ -221,9 +184,9 @@ async function makeDummyDeposit(mixerInstance, fromAccount, pubX, pubY) {
     var timeSpent = timeEnd - timeBegin;
     var gasUsed = result.receipt.gasUsed;
 
-    const depositEvent = result.logs.find(el => (el.event === 'MixerReceivedEther'));
+    const depositEvent = result.logs.find(el => (el.event === 'MixerBenchmarkEvent'));
     if (depositEvent) {
-      console.log("> Handled MixerReceivedEther Event");
+      console.log("> Handled MixerBenchmarkEvent Event");
     }
 
     console.log("==== TIME taken: " + timeSpent.toString() + "ms ====");
@@ -233,7 +196,6 @@ async function makeDummyDeposit(mixerInstance, fromAccount, pubX, pubY) {
 }
 
 async function makeWithdrawal(mixerInstance, ringGuid, tau, ctlist) {
-
     // Start the timer
     var timeBegin = getTime();
 
@@ -254,24 +216,48 @@ async function makeWithdrawal(mixerInstance, ringGuid, tau, ctlist) {
     return {timeSpent: timeSpent, gasUsed: gasUsed};
 }
 
+async function makeBenchmarkWithdraw(benchmarkMixerInstance) {
+    // Start the timer
+    var timeBegin = getTime();
+
+    let result = await benchmarkMixerInstance.BenchmarkWithdraw(123456, 123456, 123456, [123456, 123456]);
+
+    // End the timer
+    var timeEnd = getTime();
+
+    var timeSpent = timeEnd - timeBegin;
+    var gasUsed = result.receipt.gasUsed;
+
+    const depositEvent = result.logs.find(el => (el.event === 'MixerBenchmarkEvent'));
+    if (depositEvent) {
+      console.log("> Handled MixerBenchmarkEvent Event");
+    }
+
+    console.log("==== TIME taken: " + timeSpent.toString() + "ms ====");
+    console.log("==== GAS used: " + gasUsed.toString() + " gas ====\n");
+
+    return {timeSpent: timeSpent, gasUsed: gasUsed};
+}
+
 async function depositAndWithdraw(mixerInstance, accounts){
     // Generate as many keys as the size of the ring, to fill it entirely
-    const ringSize = 4;
     var keys = JSONBigInt.parse(orbitalGenerateKeys(ringSize));
 
-    // Record the time and gas measurments in arrays in order to do some advanced stats
     var ringGuid;
     var ringMsg;
 
+    var resultDeposit;
     for (var k = 0; k < ringSize; k++) {
         const pubkey = keys.pubkeys[k];
 
-        let result = await makeDeposit(mixerInstance, accounts[0], pubkey.x, pubkey.y);
+        //let result = await makeDeposit(mixerInstance, accounts[0], pubkey.x, pubkey.y);
+        resultDeposit = await makeDeposit(mixerInstance, accounts[0], pubkey.x, pubkey.y);
 
-        // Add the measurments to the arrays
-        ringGuid = result.ringGuid;
-        ringMsg = result.ringMsg;
+        //ringGuid = result.ringGuid;
+        //ringMsg = result.ringMsg;
     }
+    ringGuid = resultDeposit.ringGuid;
+    ringMsg = resultDeposit.ringMsg;
 
     console.log("Ring ID = " + ringGuid.toString());
     console.log("Ring MESSAGE = " + ringMsg.toString());
@@ -289,34 +275,25 @@ async function depositAndWithdraw(mixerInstance, accounts){
         const tau = sig.tau;
         const ctlist = sig.ctlist;
 
-        let result = await makeWithdrawal(mixerInstance, ringGuid, tau, ctlist);
+        let resultWithdraw = await makeWithdrawal(mixerInstance, ringGuid, tau, ctlist);
 
-        timeArray.push(result.timeSpent);
-        gasCostArray.push(result.gasUsed);
+        timeArray.push(resultWithdraw.timeSpent);
+        gasCostArray.push(resultWithdraw.gasUsed);
     }
 
     return {time: timeArray, gas: gasCostArray};
 }
 
 contract('Mixer', (accounts) => {
-    var numberOfRings = 5;
-    const ringSize = 4;
-
-    it('Benchmark: Average Performances of an ether transfer', async () => {
-
-        // Analysis variables
-        let instance = await Mixer.deployed();
+    it('Benchmark: Calculating the cost to make a Deposit to the BenchmarkMixer', async () => {
+        let benchmarkInstance = await BenchmarkMixer.deployed();
         var keys = JSONBigInt.parse(orbitalGenerateKeys(1));
 
         var results = [];
         for (var i = 0; i < numberOfRings; i++) {
-            let result = await makeDummyDeposit(instance, accounts[0], keys.pubkeys[0].x, keys.pubkeys[0].y)
+            let result = await makeBenchmarkDeposit(benchmarkInstance, accounts[0], keys.pubkeys[0].x, keys.pubkeys[0].y)
             results.push(result);
         }
-
-        console.log("\n=============================================================")
-        console.log("\n======= Starting withdrawal benchmark result analysis =======\n")
-        console.log("=============================================================\n")
 
         var totalTime = 0;
         var totalGas = 0;
@@ -328,16 +305,16 @@ contract('Mixer', (accounts) => {
         var averageTime = parseInt(totalTime/results.length);
         var averageGas = parseInt(totalGas/results.length);
 
-        console.log("==== Stats of an ether transfer to contract only' ====");
+        console.log("==== Stats of a deposit to the benchmark mixer contract ====");
         console.log("> Average Time: " + averageTime + "ms");
         console.log("> Average Gas cost: " + averageGas + " gas\n");
 
     });
 
     it('Benchmark: Average Performances of a Deposit to the Mixer', async () => {
-
-        // Analysis variables
-        var ringResult = [];
+        var depositResult = [];
+        var timeMatrix = [];
+        var gasMatrix = [];
 
         // Using the Truffle contract abstraction
         let instance = await Mixer.deployed();
@@ -363,29 +340,69 @@ contract('Mixer', (accounts) => {
                 gasCostArray.push(result.gasUsed);
             }
 
-            ringResult.push({time: timeArray, gas: gasCostArray});
+            timeMatrix.push(timeArray);
+            gasMatrix.push(gasCostArray);
         }
 
-        parseDepositBenchmarkResults(ringResult);
+        var depositAnalysis = getBenchmarkAnalysis(timeMatrix, gasMatrix);
+        // Adding a field to the result object containing the result of the deposit test
+        resultOfTheBenchmark["deposit"] = JSON.stringify(depositAnalysis);
+    });
+
+    it('Benchmark: Calculating the cost to Withdraw from the BenchmarkMixer', async () => {
+        let benchmarkInstance = await BenchmarkMixer.deployed();
+        var keys = JSONBigInt.parse(orbitalGenerateKeys(1));
+
+        var results = [];
+        for (var i = 0; i < numberOfRings; i++) {
+            // Call makeBenchmarkWithdraw with mock parameters (they are not used in the logic of the function)
+            let result = await makeBenchmarkWithdraw(benchmarkInstance)
+            results.push(result);
+        }
+
+        var totalTime = 0;
+        var totalGas = 0;
+        for (var i = 0; i < results.length; i++) {
+            totalTime += results[i].timeSpent;
+            totalGas += results[i].gasUsed;
+        }
+
+        var averageTime = parseInt(totalTime/results.length);
+        var averageGas = parseInt(totalGas/results.length);
+
+        console.log("==== Stats of a deposit to the benchmark mixer contract ====");
+        console.log("> Average Time: " + averageTime + "ms");
+        console.log("> Average Gas cost: " + averageGas + " gas\n");
 
     });
 
     it('Benchmark: Average Performances of a Withdrawal to the Mixer', async () => {
+        var timeMatrix = [];
+        var gasMatrix = [];
 
-        // Analysis variables
-        var ringResult = [];
-
-        // Using the Truffle contract abstraction
         let instance = await Mixer.deployed();
 
         for (var i = 0; i < numberOfRings; i++) {
             console.log("\n==== Starting withdraw benchmark for ring number " + (i + 1).toString() + " ====\n");
             let result = await depositAndWithdraw(instance, accounts);
 
-            ringResult.push(result);
+            timeMatrix.push(result.time);
+            gasMatrix.push(result.gas);
         }
 
-        parseWithdrawBenchmarkResults(ringResult);
+        var withdrawAnalysis = getBenchmarkAnalysis(timeMatrix, gasMatrix);
 
+        // Adding a field to the result object containing the result of the withdrawal test
+        resultOfTheBenchmark["withdraw"] = JSON.stringify(withdrawAnalysis);
+    });
+
+    it('Saving the result of the Benchmark in ./benchmark.txt', async () => {
+      fs.writeFile('benchmark.txt', JSON.stringify(resultOfTheBenchmark), (err) => {
+        // throws an error, you could also catch it here
+        if (err) throw err;
+
+        // success case, the file was saved
+        console.log('Benchmark statistics successfully saved !');
+      });
     });
 });
