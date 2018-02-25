@@ -18,7 +18,7 @@
   "scripts": {
     "testrpc": "ganache-cli --gasLimit 0xFFFFFFF",
     "test": "truffle test",
-    "benchmark": "truffle migrate --network benchmark && truffle test benchmark.js",
+    "benchmark": "truffle migrate --network benchmark && truffle test --network benchmark benchmark/index.js",
     "coverage": "solidity-coverage"
   }
 }
