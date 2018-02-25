@@ -14,7 +14,7 @@ const Mixer = artifacts.require("./Mixer.sol");
 const BenchmarkMixer = artifacts.require("./BenchmarkMixer.sol");
 
 // Global constants used in the benchmark (The ring size has to match the RING_SIZE var in LinkableRing.sol)
-const ringSize = 4;
+const ringSize = 10;
 const numberOfRings = 3;
 
 // Global variable that contains the result of each tests
@@ -69,7 +69,7 @@ async function writeToTemp(data) {
 
 async function generateAndVerifySignature(keys, ringMsg) {
     var keys_file = await writeToTemp(keys);
-    const inputs_txt = orbital(['inputs', '-k', keys_file.name, '-n', '4', '-m', ringMsg.substr(2)]);
+    const inputs_txt = orbital(['inputs', '-k', keys_file.name, '-n', ringSize, '-m', ringMsg.substr(2)]);
     const inputs = JSON.parse(inputs_txt);
 
     // Verify signatures validate in orbital tool
@@ -255,9 +255,11 @@ async function depositAndWithdraw(mixerInstance, accounts){
 
         //ringGuid = result.ringGuid;
         //ringMsg = result.ringMsg;
+        ringGuid = resultDeposit.ringGuid;
+        ringMsg = resultDeposit.ringMsg;
     }
-    ringGuid = resultDeposit.ringGuid;
-    ringMsg = resultDeposit.ringMsg;
+    // ringGuid = resultDeposit.ringGuid;
+    // ringMsg = resultDeposit.ringMsg;
 
     console.log("Ring ID = " + ringGuid.toString());
     console.log("Ring MESSAGE = " + ringMsg.toString());
@@ -397,7 +399,8 @@ contract('Mixer', (accounts) => {
     });
 
     it('Saving the result of the Benchmark in ./benchmark.txt', async () => {
-      fs.writeFile('benchmark.txt', JSON.stringify(resultOfTheBenchmark), (err) => {
+      let contentToSave = "var result = " + JSON.stringify(resultOfTheBenchmark);
+      fs.writeFile('benchmark.txt', contentToSave, (err) => {
         // throws an error, you could also catch it here
         if (err) throw err;
 
