@@ -13,6 +13,11 @@ _Note:_ In order to have an idea of the performances of the `Mixer` contract, we
 
 ## Results for a RING\_SIZE of 10
 
+**IMPORTANT:** To run a benchmark on different sizes of ring, 3 parameters have to be changed manually:
+1. In `contracts/LinkableRing.sol`, change the value of the variable `RING\_SIZE`
+2. In `benchmark/index.js`, change the value of the global variable `ringSize` to the same value as the `RING\_SIZE` previously set
+3. If you want to change the number of time each operation is repeated, you can also change the value of the variable `numberOfRings` in `benchmark/index.js`.
+
 ### Summary
 
 The result of the benchmark is represented in the following JSON object (written in `benchmark.txt`):
