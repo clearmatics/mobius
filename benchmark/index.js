@@ -14,7 +14,7 @@ const Mixer = artifacts.require("./Mixer.sol");
 const BenchmarkMixer = artifacts.require("./BenchmarkMixer.sol");
 
 // Global constants used in the benchmark (The ring size has to match the RING_SIZE var in LinkableRing.sol)
-const ringSize = 10;
+const ringSize = 4;
 const numberOfRings = 3;
 
 // Global variable that contains the result of each tests
