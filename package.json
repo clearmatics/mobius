@@ -16,7 +16,7 @@
     "truffle": "^4.0.0"
   },
   "scripts": {
-    "testrpc": "ganache-cli --gasLimit 0xFFFFFFF",
+    "testrpc": "ganache-cli --gasLimit 0xFFFFFFF --account='0x216e142880261d4b743386185c41ae9cf3609f648dbedc15bd0790332b23fb87,1' --account='0x072f92b9d3fcac40b3e90e84be6b961a3cc472c4ce0ad74da3c6e8af2abb0ca9, 1000000000000000000'",
     "test": "truffle test",
     "coverage": "solidity-coverage"
   }
