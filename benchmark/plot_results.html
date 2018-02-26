@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    </head>
+    <body>
+        <div id="time"></div>
+        <div id="gasCost"></div>
+        <script src="./benchmark.txt"></script>
+        <script>
+            // We use the content of the benchmark.txt file (which cointains the result variable)
+            var depositResult = JSON.parse(result.deposit);
+            var withdrawResult = JSON.parse(result.withdraw);
+
+            // Generate the xAxis array
+            var xAxisSize = depositResult.timeArray.length;
+            var xAxis = Array.from(Array(xAxisSize).keys());
+
+            // ==== TIME PLOT ==== //
+            var yDepositAxis = depositResult.timeArray;
+            var yWithdrawAxis = withdrawResult.timeArray;
+
+            var averageDepositTime = {
+                x: xAxis,
+                y: yDepositAxis,
+                name: 'Deposit function',
+                type: 'scatter'
+            };
+
+            var averageWithdrawTime = {
+                x: xAxis,
+                y: yWithdrawAxis,
+                name: 'Withdrawal function',
+                type: 'scatter'
+            };
+
+            var data = [averageDepositTime, averageWithdrawTime];
+            var layout = {
+                title: 'Average time of execution of a function with RING_SIZE=' + xAxisSize,
+            };
+            Plotly.newPlot('time', data, layout);
+
+
+            // ==== GAS COST PLOT ==== //
+            // Build the yAxis array
+            var yDepositGasAxis = depositResult.gasArray;
+            var yWithdrawGasAxis = withdrawResult.gasArray;
+
+            var averageDepositGasCost = {
+                x: xAxis,
+                y: yDepositGasAxis,
+                name: 'Deposit function',
+                type: 'scatter'
+            };
+
+            var averageWithdrawGasCost = {
+                x: xAxis,
+                y: yWithdrawGasAxis,
+                name: 'Withdrawal function',
+                type: 'scatter'
+            };
+
+            var data = [averageDepositGasCost, averageWithdrawGasCost];
+            var layout = {
+                title: 'Average gas cost of execution of a function with RING_SIZE=' + xAxisSize,
+            };
+            Plotly.newPlot('gasCost', data, layout);
+        </script>
+    </body>
+</html>
+
