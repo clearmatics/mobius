@@ -14,7 +14,7 @@ contract BenchmarkMixer
     */
     event MixerBenchmarkEvent();
 
-    function Mixer()
+    function BenchmarkMixer()
         public
     {
         // Nothing ...

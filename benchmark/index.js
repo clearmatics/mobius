@@ -250,16 +250,11 @@ async function depositAndWithdraw(mixerInstance, accounts){
     for (var k = 0; k < ringSize; k++) {
         const pubkey = keys.pubkeys[k];
 
-        //let result = await makeDeposit(mixerInstance, accounts[0], pubkey.x, pubkey.y);
         resultDeposit = await makeDeposit(mixerInstance, accounts[0], pubkey.x, pubkey.y);
 
-        //ringGuid = result.ringGuid;
-        //ringMsg = result.ringMsg;
         ringGuid = resultDeposit.ringGuid;
         ringMsg = resultDeposit.ringMsg;
     }
-    // ringGuid = resultDeposit.ringGuid;
-    // ringMsg = resultDeposit.ringMsg;
 
     console.log("Ring ID = " + ringGuid.toString());
     console.log("Ring MESSAGE = " + ringMsg.toString());
@@ -399,13 +394,12 @@ contract('Mixer', (accounts) => {
     });
 
     it('Saving the result of the Benchmark in ./benchmark.txt', async () => {
-      let contentToSave = "var result = " + JSON.stringify(resultOfTheBenchmark);
-      fs.writeFile('benchmark.txt', contentToSave, (err) => {
-        // throws an error, you could also catch it here
-        if (err) throw err;
-
-        // success case, the file was saved
-        console.log('Benchmark statistics successfully saved !');
-      });
+        let contentToSave = "var result = " + JSON.stringify(resultOfTheBenchmark);
+        fs.writeFile('benchmark/benchmark.txt', contentToSave, (err) => {
+            // throws an error, you could also catch it here
+            if (err) throw err;
+            // success case, the file was saved
+            console.log('Benchmark statistics successfully saved !');
+        });
     });
 });
