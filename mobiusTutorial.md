@@ -44,7 +44,7 @@ cd $WORKDIR/mobius
 [Save and exit your editor]
 ```
 2. We call Alice the sender of the payment and Bob the recipient.
-3. We assume that two accounts with some ethers are available in order to run this tutorial.i
+3. We assume that two accounts with some ethers are available in order to run this tutorial.
 
 ### Step 1: Generate a master key pair for Bob, using Orbital
 
@@ -115,7 +115,7 @@ The steps described in this section should only be executed if you decided not t
     "timestamp"  : "0x00"
 }
 ```
-*Note:* Make sure to have the line `"byzantiumBlock": 0` in the `config` of your `genesis.json` file in order tomake sure that the Mobius contract will be able to execute precompiled contracts. (See: [Byzantium](https://blog.ethereum.org/2017/10/12/byzantium-hf-announcement/))
+*Note:* Make sure to have the line `"byzantiumBlock": 0` in the `config` of your `genesis.json` file in order to make sure that the Mobius contract will be able to execute precompiled contracts. (See: [Byzantium](https://blog.ethereum.org/2017/10/12/byzantium-hf-announcement/))
 2. Create the data directory for your local configuration of your ethereum network:
 ```bash
 mkdir ~/ethdev
