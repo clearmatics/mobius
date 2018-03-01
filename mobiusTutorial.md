@@ -1,4 +1,4 @@
-# Sending money through Mobius
+# Sending transactions with Mobius
 
 ## Environment
 
