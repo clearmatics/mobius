@@ -19,6 +19,8 @@ Möbius is a Smart Contract that runs on Ethereum that offers trustless autonomo
 
 ## Using Möbius
 
+:point_right: **See the full [Tutorial](./mobiusTutorial.md)**
+
 To tumble a token it is deposited into the [Mixer](contracts/Mixer.sol) smart contract by sending the token and the stealth public key of the receiver to the `Deposit` method.
 
 The Mixer contract places the token into an unfilled [Ring](contracts/LinkableRing.sol) specific to that token and denomination and provides the GUID of the Ring. The current ring size is 4, so when 3 other people deposit the same denomination of token into the Mixer the Ring will have filled. Tokens can only be withdrawn when the Ring is full.
