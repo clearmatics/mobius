@@ -5,7 +5,8 @@
 pragma solidity ^0.4.18;
 
 import './LinkableRing.sol';
-
+import './ERC223Token.sol'
+import './ERC223ReceivingContract.sol'
 
 /*
  * Each ring is given a globally unique ID which consist of:
@@ -149,7 +150,7 @@ contract Mixer is ERC223ReceivingContract {
 
 
     /**
-    * deposit tokens of a specific denomination which can only be withdrawn
+    * Deposit a specific denomination of ethers which can only be withdrawn
     * by providing a ring signature by one of the public keys.
     */
     function DepositEther (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
@@ -189,6 +190,10 @@ contract Mixer is ERC223ReceivingContract {
         return ring_guid;
     }
 
+    /**
+    * Deposit a specific denomination of ERC223 tokens (ERC20 compatible) which can only be withdrawn
+    * by providing a ring signature by one of the public keys.
+    */
     function DepositERC223 (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
         public returns (bytes32)
     {
@@ -239,11 +244,11 @@ contract Mixer is ERC223ReceivingContract {
 
 
     /**
-    * To Withdraw a Token of Denomination from the Ring, one of the Public Keys
+    * To Withdraw a denomination of ethers from the Ring, one of the Public Keys
     * must provide a Signature which has a unique Tag. Each Tag can only be used
     * once.
     */
-    function Withdraw (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
+    function WithdrawEther (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
         public returns (bool)
     {
         Data storage entry = m_rings[ring_id];
@@ -277,6 +282,11 @@ contract Mixer is ERC223ReceivingContract {
         return true;
     }
 
+    /**
+    * To Withdraw a denomination of ERC223 tokens from the Ring, one of the Public Keys
+    * must provide a Signature which has a unique Tag. Each Tag can only be used
+    * once.
+    */
     function WithdrawERC223 (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
         public returns (bool)
     {
