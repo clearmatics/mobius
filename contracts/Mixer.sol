@@ -312,6 +312,9 @@ contract Mixer
         return true;
     }
 
+    function tokenFallback(address from, uint value, bytes data) public {
+        // Custom fallback instructions
+    }
 
     function () public {
         revert();
