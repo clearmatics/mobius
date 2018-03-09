@@ -7,39 +7,39 @@ pragma solidity ^0.4.18;
 import './LinkableRing.sol';
 
 
-/**
-* Each ring is given a globally unique ID which consist of:
-*
-*  - contract address
-*  - incrementing nonce
-*  - token address
-*  - denomination
-*
-* When a Deposit is made for a specific Token and Denomination
-* the Mixer will return the Ring GUID. The lifecycle of each Ring
-* can then be monitored using the following events which demarcate
-* the state transitions:
-*
-* MixerDeposit
-*   For each Deposit a MixerDeposit message is emitted, this includes
-*   the Ring GUID, the X point of the Stealth Address, and the Token
-*   address and Denomination.
-*
-* MixerReady
-*   When a Ring is full and withdrawals can be made a RingReady
-*   event is emitted, this includes the Ring GUID and the Message
-*   which must be signed to Withdraw.
-*
-* MixerWithdraw
-*   For each Withdraw a MixerWithdraw message is emitted, this includes
-*   the Token, Denomination, Ring GUID and Tag of the withdrawer.
-*
-* MixerDead
-*   When all participants have withdrawn their tokens from a Ring the
-*   MixerDead event is emitted, this specifies the Ring GUID.
-*/
-contract Mixer
-{
+/*
+ * Each ring is given a globally unique ID which consist of:
+ *
+ *  - contract address
+ *  - incrementing nonce
+ *  - token address
+ *  - denomination
+ *
+ * When a Deposit is made for a specific Token and Denomination
+ * the Mixer will return the Ring GUID. The lifecycle of each Ring
+ * can then be monitored using the following events which demarcate
+ * the state transitions:
+ *
+ * MixerDeposit
+ *   For each Deposit a MixerDeposit message is emitted, this includes
+ *   the Ring GUID, the X point of the Stealth Address, and the Token
+ *   address and Denomination.
+ *
+ * MixerReady
+ *   When a Ring is full and withdrawals can be made a RingReady
+ *   event is emitted, this includes the Ring GUID and the Message
+ *   which must be signed to Withdraw.
+ *
+ * MixerWithdraw
+ *   For each Withdraw a MixerWithdraw message is emitted, this includes
+ *   the Token, Denomination, Ring GUID and Tag of the withdrawer.
+ *
+ * MixerDead
+ *   When all participants have withdrawn their tokens from a Ring the
+ *   MixerDead event is emitted, this specifies the Ring GUID.
+**/
+
+contract Mixer is ERC223ReceivingContract {
     using LinkableRing for LinkableRing.Data;
 
     struct Data {
@@ -310,10 +310,6 @@ contract Mixer
         }
 
         return true;
-    }
-
-    function tokenFallback(address from, uint value, bytes data) public {
-        // Custom fallback instructions
     }
 
     function () public {
