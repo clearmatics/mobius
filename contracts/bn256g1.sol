@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: LGPL-3.0+
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.20;
 
 /**
 * This module wraps the alt_bn128 G1 Elliptic Curve functions into
@@ -39,7 +39,7 @@ pragma solidity ^0.4.18;
 *
 * For more details, refer to the IACR paper, we have tried to ensure
 * that the variable names and comments throughout this library make it
-* easier for cryptographers, mathematicians and programmers alike to 
+* easier for cryptographers, mathematicians and programmers alike to
 * use the same terminology across multiple domains without confusion.
 *
 * The parameters used by the ALT_BN128 curve implemented in Ethereum are:

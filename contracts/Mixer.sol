@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: LGPL-3.0+
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.20;
 
 import './LinkableRing.sol';
 import './ERC223Token.sol'

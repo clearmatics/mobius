@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: LGPL-3.0+
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.20;
 
 import './bn256g1.sol';
 
@@ -15,7 +15,7 @@ contract bn256g1_tests
 	{
 		var g = bn256g1.Generator();
 		require( g.IsOnCurve() );
-			
+
 		var x = g.ScalarMult(uint256(sha256("1")));
 		require( x.IsOnCurve() );
 
@@ -35,9 +35,9 @@ contract bn256g1_tests
 		require( p.IsOnCurve() );
 
 		require( p.X == 18149469767584732552991861025120904666601524803017597654373315627649680264678 );
-			
+
 		require( p.Y == 18593544354303197021588991433499968191850988132424885073381608163097237734820 );
-		
+
 		return true;
 	}
 
