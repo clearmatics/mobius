@@ -2,11 +2,19 @@
 
 // SPDX-License-Identifier: LGPL-3.0+
 
-pragma solidity ^0.4.20;
+pragma solidity ^0.4.19;
 
 import './LinkableRing.sol';
-import './ERC223Token.sol'
-import './ERC223ReceivingContract.sol'
+
+/*
+ * Declare the ERC20 contract interface in order to handle ERC20 tokens transfers
+ * to and from the Mixer. Note that we only declare the functions we are interested in,
+ * namely, transferFrom (used to do a Deposit), and transfer (used to do a withdrawal)
+**/
+contract ERC20 {
+    function transferFrom(address from, address to, uint256 value);
+    function transfer(address to, uint256 value);
+}
 
 /*
  * Each ring is given a globally unique ID which consist of:
@@ -40,7 +48,7 @@ import './ERC223ReceivingContract.sol'
  *   MixerDead event is emitted, this specifies the Ring GUID.
 **/
 
-contract Mixer is ERC223ReceivingContract {
+contract Mixer /*is ERC223ReceivingContract*/ {
     using LinkableRing for LinkableRing.Data;
 
     struct Data {
@@ -98,7 +106,6 @@ contract Mixer is ERC223ReceivingContract {
         // Nothing ...
     }
 
-
     /**
     * Lookup an unfilled/filling ring for a given token and denomination,
     * this will create a new unfilled ring if none exists. When the ring
@@ -132,7 +139,6 @@ contract Mixer is ERC223ReceivingContract {
         return (filling_id, entry);
     }
 
-
     /**
     * Given a GUID of a full Ring, return the Message to sign
     */
@@ -147,7 +153,6 @@ contract Mixer is ERC223ReceivingContract {
 
         return ring.Message();
     }
-
 
     /**
     * Deposit a specific denomination of ethers which can only be withdrawn
@@ -197,19 +202,16 @@ contract Mixer is ERC223ReceivingContract {
     function DepositERC223 (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
         public returns (bytes32)
     {
-        // This function is NON PAYABLE
         uint256 codeLength;
         assembly {
             codeLength := extcodesize(token)
         }
 
         require( token != 0 && codeLength > 0);
-        // require( denomination == msg.value ); --> No need for this line as the function is not payable anymore
 
-        ERC223Token erc223Token = ERC223Token(token);
-        // In order for the function to succeed, the Mixer as to be allowed to spend the
-        // denomination on behalf of the caller of the Deposit() method
-        erc223Token.transferFrom(msg.sender, this, denomination)
+        ERC20 erc20Token;
+        erc20Token = ERC20(token);
+        erc20Token.transferFrom(msg.sender, this, denomination);
 
         // Denomination must be positive power of 2, e.g. only 1 bit set
         require( denomination != 0 && 0 == (denomination & (denomination - 1)) );
@@ -241,7 +243,6 @@ contract Mixer is ERC223ReceivingContract {
 
         return ring_guid;
     }
-
 
     /**
     * To Withdraw a denomination of ethers from the Ring, one of the Public Keys
@@ -305,9 +306,9 @@ contract Mixer is ERC223ReceivingContract {
 
         MixerWithdraw(ring_id, tag_x, entry.token, entry.denomination);
 
-        // TODO: add ERC-223 support
-        ERC223Token erc223Token = ERC223Token(entry.token);
-        erc223Token.transfer(msg.sender, entry.denomination);
+        ERC20 erc20Token;
+        erc20Token = ERC20(entry.token);
+        erc20Token.transfer(msg.sender, entry.denomination);
 
         // When Tags.length == Pubkeys.length, the ring is dead
         // Remove mappings and delete ring
@@ -324,5 +325,22 @@ contract Mixer is ERC223ReceivingContract {
 
     function () public {
         revert();
+    }
+
+    // Implementation of the ERC223Receiver interface
+    struct Token {
+        address sender;
+        uint value;
+        bytes data;
+        bytes4 sig;
+    }
+
+    function tokenFallback(address _from, uint _value, bytes _data) public pure {
+        Token memory tkn;
+        tkn.sender = _from;
+        tkn.value = _value;
+        tkn.data = _data;
+        uint32 u = uint32(_data[3]) + (uint32(_data[2]) << 8) + (uint32(_data[1]) << 16) + (uint32(_data[0]) << 24);
+        tkn.sig = bytes4(u);
     }
 }
