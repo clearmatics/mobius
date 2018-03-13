@@ -9,12 +9,6 @@ pragma solidity ^0.4.19;
 **/
 
 contract ERC223ReceivingContract {
-    event ERROR(bytes32 idexed);
-
-    function() payable {
-        ERROR(0x1);
-    }
-
     // See: https://github.com/Dexaran/ERC223-token-standard/blob/Recommended/Receiver_Interface.sol
     struct Token {
         address sender;
