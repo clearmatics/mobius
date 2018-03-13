@@ -1,4 +1,4 @@
-solidity ^0.4.20;
+pragma solidity ^0.4.19;
 
 /*
  * Contract that is working with ERC223 tokens
@@ -11,7 +11,5 @@ contract ERC223ReceivingContract {
         ERROR(0x1);
     }
 
-    function tokenFallback(address,uint256,bytes) public {
-        // Custom tokenFallback to receive ERC223 tokens on the contract
-    }
+    function tokenFallback(address _from, uint256 _value, bytes _data) public;
 }

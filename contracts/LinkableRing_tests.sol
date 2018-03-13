@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: LGPL-3.0+
 
-pragma solidity ^0.4.20;
+pragma solidity ^0.4.19;
 
 import './LinkableRing.sol';
 
