@@ -13,7 +13,7 @@ const bn256g1_tests = artifacts.require("./bn256g1_tests.sol");
 
 // XXX: truffle solidity tests are a lil broken due to the 'import' bug
 // e.g. the imports in contracts/ are relative to the CWD not the source file
-//      this means when compiling the tests the CWD is the project root, so 
+//      this means when compiling the tests the CWD is the project root, so
 //      conflicting paths...
 const testContracts = {
     LinkableRing_tests: LinkableRing_tests,
@@ -78,13 +78,13 @@ contract('Mixer', (accounts) => {
         let instance = await Mixer.deployed();
 
         // This should succeed
-        let result = await instance.Deposit(token, txObj.value, point.x, point.y, txObj);
+        let result = await instance.DepositEther(token, txObj.value, point.x, point.y, txObj);
         assert.ok(result.receipt.status, "Bad deposit status with valid point");
 
         // This will fail because the point is already in a ring
         var ok = false;
-        result = await instance.Deposit(token, txObj.value, point.x, point.y, txObj).catch(function(err) {
-            assert.include(err.message, 'revert', 'Deposit with duplicate key should revert');    
+        result = await instance.DepositEther(token, txObj.value, point.x, point.y, txObj).catch(function(err) {
+            assert.include(err.message, 'revert', 'Deposit with duplicate key should revert');
             ok = true;
         });
         if( ! ok )
@@ -93,8 +93,8 @@ contract('Mixer', (accounts) => {
         // This will fail because the point is invalid
         point = RandomPoint();
         ok = false;
-        result = await instance.Deposit(token, txObj.value, 123, point.y, txObj).catch(function(err) {
-            assert.include(err.message, 'revert', 'Deposit with invalid point should revert');    
+        result = await instance.DepositEther(token, txObj.value, 123, point.y, txObj).catch(function(err) {
+            assert.include(err.message, 'revert', 'Deposit with invalid point should revert');
             ok = true;
         });
         if( ! ok )
@@ -102,8 +102,8 @@ contract('Mixer', (accounts) => {
 
         // This will fail because the denomination is invalid
         ok = false;
-        result = await instance.Deposit(token, 0, point.x, point.y, txObj).catch(function(err) {
-            assert.include(err.message, 'revert', 'Deposit with invalid denomination should revert');    
+        result = await instance.DepositEther(token, 0, point.x, point.y, txObj).catch(function(err) {
+            assert.include(err.message, 'revert', 'Deposit with invalid denomination should revert');
             ok = true;
         });
         if( ! ok )
@@ -112,7 +112,7 @@ contract('Mixer', (accounts) => {
         // Then fill the ring with a remaining 3, otherwise further tests will fail
         for( var i = 0; i < 3; i++ ) {
             point = RandomPoint();
-            result = await instance.Deposit(token, txObj.value, point.x, point.y, txObj);
+            result = await instance.DepositEther(token, txObj.value, point.x, point.y, txObj);
         }
     });
 
@@ -124,7 +124,7 @@ contract('Mixer', (accounts) => {
         const owner = accounts[0];
         const token = 0;            // 0 = ether
         const txObj = { from: owner, value: txValue };
-        
+
         const startingBalance = web3.eth.getBalance(instance.address);
         const ringSize = 4;
 
@@ -142,7 +142,7 @@ contract('Mixer', (accounts) => {
             i++;
             // Deposit a random public key
             const point = RandomPoint();
-            let result = await instance.Deposit(token, txValue, point.x, point.y, txObj);
+            let result = await instance.DepositEther(token, txValue, point.x, point.y, txObj);
             assert.ok(result.receipt.status, "Bad deposit status");
             total_gas += result.receipt.gasUsed;
 
@@ -162,7 +162,7 @@ contract('Mixer', (accounts) => {
             else {
                 ring_guid = depositEvent.args.ring_id.toString();
             }
-            
+
             // For every N deposits, verify a MixerReady event has triggered
             const isLast = 0 == (i % ringSize);
             if( isLast ) {
