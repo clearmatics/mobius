@@ -31,6 +31,16 @@ v9.5.0
 
 ## How to use Mobius ?
 
+---------------------------------------------------
+
+As Möbius supports transfer for ethers and ERC20 compatible tokens, we denote by `Deposit` and `Withdraw` the action to do a deposit and a withdrawal to and from the Mixer. The user is free to use the appropriate suffix `Ether` or `ERC20Compatible`.
+
+:warning: In order for the `DepositERC20Compatible` function to run, the sender has to **first** authorize the `Mixer` to trigger a transfer of tokens, on his behalf. To do this, the sender has to run: `token.approve([mixerAddress], [amountToApprove], {from: [senderAccount]});` (see: ERC20 interface for more details), before calling `DepositERC20Compatible`.
+
+:warning: The `DepositERC20Compatible` function is not payable, so the `value` field of the transaction object should be omitted.
+
+---------------------------------------------------
+
 ### Assumptions
 
 1. The `Mixer` has a `RING_SIZE` equal to 1 (see: https://github.com/clearmatics/mobius/blob/master/contracts/LinkableRing.sol#L80).
