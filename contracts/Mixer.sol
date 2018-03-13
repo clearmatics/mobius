@@ -11,7 +11,7 @@ import './LinkableRing.sol';
  * to and from the Mixer. Note that we only declare the functions we are interested in,
  * namely, transferFrom (used to do a Deposit), and transfer (used to do a withdrawal)
 **/
-contract ERC20 {
+contract ERC20Compatible {
     function transferFrom(address from, address to, uint256 value);
     function transfer(address to, uint256 value);
 }
@@ -48,7 +48,7 @@ contract ERC20 {
  *   MixerDead event is emitted, this specifies the Ring GUID.
 **/
 
-contract Mixer /*is ERC223ReceivingContract*/ {
+contract Mixer is ERC223ReceivingContract {
     using LinkableRing for LinkableRing.Data;
 
     struct Data {
@@ -196,10 +196,10 @@ contract Mixer /*is ERC223ReceivingContract*/ {
     }
 
     /**
-    * Deposit a specific denomination of ERC223 tokens (ERC20 compatible) which can only be withdrawn
+    * Deposit a specific denomination of ERC20 compatible tokens which can only be withdrawn
     * by providing a ring signature by one of the public keys.
     */
-    function DepositERC223 (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
+    function DepositERC20Compatible (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
         public returns (bytes32)
     {
         uint256 codeLength;
@@ -209,8 +209,8 @@ contract Mixer /*is ERC223ReceivingContract*/ {
 
         require( token != 0 && codeLength > 0);
 
-        ERC20 erc20Token;
-        erc20Token = ERC20(token);
+        ERC20Compatible erc20Token;
+        erc20Token = ERC20Compatible(token);
         erc20Token.transferFrom(msg.sender, this, denomination);
 
         // Denomination must be positive power of 2, e.g. only 1 bit set
@@ -283,11 +283,11 @@ contract Mixer /*is ERC223ReceivingContract*/ {
     }
 
     /**
-    * To Withdraw a denomination of ERC223 tokens from the Ring, one of the Public Keys
+    * To Withdraw a denomination of ERC20 compatible tokens from the Ring, one of the Public Keys
     * must provide a Signature which has a unique Tag. Each Tag can only be used
     * once.
     */
-    function WithdrawERC223 (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
+    function WithdrawERC20Compatible (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
         public returns (bool)
     {
         Data storage entry = m_rings[ring_id];
@@ -305,8 +305,8 @@ contract Mixer /*is ERC223ReceivingContract*/ {
 
         MixerWithdraw(ring_id, tag_x, entry.token, entry.denomination);
 
-        ERC20 erc20Token;
-        erc20Token = ERC20(entry.token);
+        ERC20Compatible erc20Token;
+        erc20Token = ERC20Compatible(entry.token);
         erc20Token.transfer(msg.sender, entry.denomination);
 
         // When Tags.length == Pubkeys.length, the ring is dead
@@ -324,22 +324,5 @@ contract Mixer /*is ERC223ReceivingContract*/ {
 
     function () public {
         revert();
-    }
-
-    // Implementation of the ERC223Receiver interface
-    struct Token {
-        address sender;
-        uint value;
-        bytes data;
-        bytes4 sig;
-    }
-
-    function tokenFallback(address _from, uint _value, bytes _data) public pure {
-        Token memory tkn;
-        tkn.sender = _from;
-        tkn.value = _value;
-        tkn.data = _data;
-        uint32 u = uint32(_data[3]) + (uint32(_data[2]) << 8) + (uint32(_data[1]) << 16) + (uint32(_data[0]) << 24);
-        tkn.sig = bytes4(u);
     }
 }
