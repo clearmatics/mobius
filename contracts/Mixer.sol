@@ -267,7 +267,6 @@ contract Mixer /*is ERC223ReceivingContract*/ {
 
         MixerWithdraw(ring_id, tag_x, entry.token, entry.denomination);
 
-        // TODO: add ERC-223 support
         msg.sender.transfer(entry.denomination);
 
         // When Tags.length == Pubkeys.length, the ring is dead
