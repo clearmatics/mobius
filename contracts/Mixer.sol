@@ -165,34 +165,7 @@ contract Mixer is ERC223ReceivingContract {
         require( token == 0);
         require( denomination == msg.value );
 
-        // Denomination must be positive power of 2, e.g. only 1 bit set
-        require( denomination != 0 && 0 == (denomination & (denomination - 1)) );
-
-        // Public key can only exist in one ring at a time
-        require( 0 == uint256(m_pubx_to_ring[pub_x]) );
-
-        bytes32 filling_id;
-        Data storage entry;
-        (filling_id, entry) = lookupFillingRing(token, denomination);
-
-        LinkableRing.Data storage ring = entry.ring;
-
-        require( ring.AddParticipant(pub_x, pub_y) );
-
-        // Associate Public X point with Ring GUID
-        // This allows the ring to be recovered with the public key
-        // Without having to monitor/replay the RingDeposit events
-        var ring_guid = entry.guid;
-        m_pubx_to_ring[pub_x] = ring_guid;
-        MixerDeposit(ring_guid, pub_x, token, denomination);
-
-        // When full, emit the GUID as the Ring Message
-        // Participants need to sign this Message to Withdraw
-        if( ring.IsFull() ) {
-            delete m_filling[filling_id];
-            MixerReady(ring_guid, ring.Message());
-        }
-
+        bytes32 ring_guid = DepositLogic(token, denomination, pub_x, pub_y);
         return ring_guid;
     }
 
@@ -209,7 +182,49 @@ contract Mixer is ERC223ReceivingContract {
         }
 
         require( token != 0 && codeLength > 0);
+        bytes32 ring_guid = DepositLogic(token, denomination, pub_x, pub_y);
 
+        // Call to an untrusted external contract
+        ERC20Compatible UntrustedErc20Token = ERC20Compatible(token);
+        UntrustedErc20Token.transferFrom(msg.sender, this, denomination);
+
+        return ring_guid;
+    }
+
+    /**
+    * To Withdraw a denomination of ethers from the Ring, one of the Public Keys
+    * must provide a Signature which has a unique Tag. Each Tag can only be used
+    * once.
+    */
+    function WithdrawEther (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
+        public returns (bool)
+    {
+        Data memory entry = WithdrawLogic(ring_id, tag_x, tag_y, ctlist);
+        msg.sender.transfer(entry.denomination);
+
+        return true;
+    }
+
+    /**
+    * To Withdraw a denomination of ERC20 compatible tokens from the Ring, one of the Public Keys
+    * must provide a Signature which has a unique Tag. Each Tag can only be used
+    * once.
+    */
+    function WithdrawERC20Compatible (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
+        public returns (bool)
+    {
+        Data memory entry = WithdrawLogic(ring_id, tag_x, tag_y, ctlist);
+
+        // Call to an untrusted external contract done at the end of the function for security measures
+        ERC20Compatible UntrustedErc20Token = ERC20Compatible(entry.token);
+        UntrustedErc20Token.transfer(msg.sender, entry.denomination);
+
+        return true;
+    }
+
+    function DepositLogic(address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
+        internal returns (bytes32)
+    {
         // Denomination must be positive power of 2, e.g. only 1 bit set
         require( denomination != 0 && 0 == (denomination & (denomination - 1)) );
 
@@ -238,20 +253,11 @@ contract Mixer is ERC223ReceivingContract {
             MixerReady(ring_guid, ring.Message());
         }
 
-        // Call to an untrusted external contract
-        ERC20Compatible UntrustedErc20Token = ERC20Compatible(token);
-        UntrustedErc20Token.transferFrom(msg.sender, this, denomination);
-
         return ring_guid;
     }
 
-    /**
-    * To Withdraw a denomination of ethers from the Ring, one of the Public Keys
-    * must provide a Signature which has a unique Tag. Each Tag can only be used
-    * once.
-    */
-    function WithdrawEther (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
-        public returns (bool)
+    function WithdrawLogic(bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
+        internal returns (Data)
     {
         Data storage entry = m_rings[ring_id];
         LinkableRing.Data storage ring = entry.ring;
@@ -268,7 +274,12 @@ contract Mixer is ERC223ReceivingContract {
 
         MixerWithdraw(ring_id, tag_x, entry.token, entry.denomination);
 
-        msg.sender.transfer(entry.denomination);
+        // We want to return a copy of the entry in order to be able to access
+        // The token and denomination fileds of this object.
+        // Since the following instructions might delete the entry in the storage
+        // We save it in a memory variable (deleted after the function execution)
+        // and return it to the parent function.
+        Data memory entrySaved = entry;
 
         // When Tags.length == Pubkeys.length, the ring is dead
         // Remove mappings and delete ring
@@ -280,47 +291,7 @@ contract Mixer is ERC223ReceivingContract {
             MixerDead(ring_id);
         }
 
-        return true;
-    }
-
-    /**
-    * To Withdraw a denomination of ERC20 compatible tokens from the Ring, one of the Public Keys
-    * must provide a Signature which has a unique Tag. Each Tag can only be used
-    * once.
-    */
-    function WithdrawERC20Compatible (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
-        public returns (bool)
-    {
-        Data storage entry = m_rings[ring_id];
-        LinkableRing.Data storage ring = entry.ring;
-
-        // Entry is empty, non-existant ring
-        require( 0 != entry.denomination );
-
-        require( ring.IsFull() );
-
-        require( ring.SignatureValid(tag_x, tag_y, ctlist) );
-
-        // Tag must be added before withdraw
-        ring.TagAdd(tag_x);
-
-        MixerWithdraw(ring_id, tag_x, entry.token, entry.denomination);
-
-        // When Tags.length == Pubkeys.length, the ring is dead
-        // Remove mappings and delete ring
-        if( ring.IsDead() ) {
-            for( uint i = 0; i < ring.pubkeys.length; i++ ) {
-                delete m_pubx_to_ring[ring.pubkeys[i].X];
-            }
-            delete m_rings[ring_id];
-            MixerDead(ring_id);
-        }
-
-        // Call to an untrusted external contract
-        ERC20Compatible UntrustedErc20Token = ERC20Compatible(entry.token);
-        UntrustedErc20Token.transfer(msg.sender, entry.denomination);
-
-        return true;
+        return entrySaved;
     }
 
     function () public {
