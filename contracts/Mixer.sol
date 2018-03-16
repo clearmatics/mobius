@@ -210,10 +210,6 @@ contract Mixer is ERC223ReceivingContract {
 
         require( token != 0 && codeLength > 0);
 
-        ERC20Compatible erc20Token;
-        erc20Token = ERC20Compatible(token);
-        erc20Token.transferFrom(msg.sender, this, denomination);
-
         // Denomination must be positive power of 2, e.g. only 1 bit set
         require( denomination != 0 && 0 == (denomination & (denomination - 1)) );
 
@@ -241,6 +237,10 @@ contract Mixer is ERC223ReceivingContract {
             delete m_filling[filling_id];
             MixerReady(ring_guid, ring.Message());
         }
+
+        // Call to an untrusted external contract
+        ERC20Compatible UntrustedErc20Token = ERC20Compatible(token);
+        UntrustedErc20Token.transferFrom(msg.sender, this, denomination);
 
         return ring_guid;
     }
@@ -306,10 +306,6 @@ contract Mixer is ERC223ReceivingContract {
 
         MixerWithdraw(ring_id, tag_x, entry.token, entry.denomination);
 
-        ERC20Compatible erc20Token;
-        erc20Token = ERC20Compatible(entry.token);
-        erc20Token.transfer(msg.sender, entry.denomination);
-
         // When Tags.length == Pubkeys.length, the ring is dead
         // Remove mappings and delete ring
         if( ring.IsDead() ) {
@@ -319,6 +315,10 @@ contract Mixer is ERC223ReceivingContract {
             delete m_rings[ring_id];
             MixerDead(ring_id);
         }
+
+        // Call to an untrusted external contract
+        ERC20Compatible UntrustedErc20Token = ERC20Compatible(entry.token);
+        UntrustedErc20Token.transfer(msg.sender, entry.denomination);
 
         return true;
     }
