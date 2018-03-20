@@ -54,7 +54,7 @@ contract bn256g1_tests {
 		var a = g.scalarMult(9).pointAdd(g.scalarMult(5));
 		var b = g.scalarMult(12).pointAdd(g.scalarMult(2));
 
-		require(a.Equal(b));
+		require(a.equal(b));
 
 		return true;
 	}
