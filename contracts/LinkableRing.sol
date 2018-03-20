@@ -45,7 +45,7 @@ import {bn256g1 as Curve} from './bn256g1.sol';
  *   h = H(guid...)
  *   for y in R
  *       h = H(h, y)
- *   m = HashToPoint(h)
+ *   m = hashToPoint(h)
  *
  *
  * Verify Signature (σ):
@@ -160,7 +160,7 @@ library LinkableRing {
         require(!pubExists(self, pub_x));
 
         Curve.Point memory pub = Curve.Point(pub_x, pub_y);
-        require(pub.IsOnCurve());
+        require(pub.isOnCurve());
 
         // Fill Ring with Public Keys
         //  R = {h ← H(h, y)}
@@ -169,7 +169,7 @@ library LinkableRing {
 
         if(isFull(self)) {
             // h ← H(h, m)
-            self.hash = Curve.HashToPoint(bytes32(self.hash.X));
+            self.hash = Curve.hashToPoint(bytes32(self.hash.X));
         }
 
         return true;
@@ -202,17 +202,16 @@ library LinkableRing {
     function ringLink(uint256 previous_hash, uint256 cj, uint256 tj, Curve.Point tau, Curve.Point h, Curve.Point yj)
         internal view returns (uint256 ho)
     {
-        Curve.Point memory yc = yj.ScalarMult(cj);
+        Curve.Point memory yc = yj.scalarMult(cj);
 
         // a ← g^t + y^c
-        Curve.Point memory a = Curve.ScalarBaseMult(tj).PointAdd(yc);
+        Curve.Point memory a = Curve.scalarBaseMult(tj).pointAdd(yc);
 
         // b ← h^t + τ^c
-        Curve.Point memory b = h.ScalarMult(tj).PointAdd(tau.ScalarMult(cj));
+        Curve.Point memory b = h.scalarMult(tj).pointAdd(tau.scalarMult(cj));
 
         return uint256(sha256(previous_hash, a.X, a.Y, b.X, b.Y));
     }
-
 
     /**
     * Verify whether or not a Ring Signature is valid
@@ -237,13 +236,13 @@ library LinkableRing {
         for (uint i = 0; i < self.pubkeys.length; i++) {
             // h ← H(h, a, b)
             // sum({c...})
-            uint256 cj = ctlist[2*i] % Curve.GenOrder();
-            uint256 tj = ctlist[2*i+1] % Curve.GenOrder();
+            uint256 cj = ctlist[2*i] % Curve.genOrder();
+            uint256 tj = ctlist[2*i+1] % Curve.genOrder();
             hashout = ringLink(hashout, cj, tj, Curve.Point(tag_x, tag_y), self.hash, self.pubkeys[i]);
-            csum = addmod(csum, cj, Curve.GenOrder());
+            csum = addmod(csum, cj, Curve.genOrder());
         }
 
-        hashout %= Curve.GenOrder();
+        hashout %= Curve.genOrder();
         return hashout == csum;
     }
 }
