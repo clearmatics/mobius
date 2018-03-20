@@ -5,9 +5,8 @@
 pragma solidity ^0.4.19;
 
 /*
- * Contract that is working with ERC223 tokens
+ * ERC223 token compatible contract
 **/
-
 contract ERC223ReceivingContract {
     // See: https://github.com/Dexaran/ERC223-token-standard/blob/Recommended/Receiver_Interface.sol
     struct Token {

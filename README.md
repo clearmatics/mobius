@@ -23,8 +23,8 @@ Möbius is a Smart Contract that runs on Ethereum that offers trustless autonomo
 
 -----------------------------------------------------
 
-Möbius supports ether transactions and ERC20 compatible token transactions.
-In order to use the Mixer with ERC20 compatible tokens, one has to use the `DepositERC20Compatible` and `WithdrawERC20Compatible` functions.
+Möbius supports ether and ERC20 compatible token transactions.
+In order to use the Mixer with ERC20 compatible tokens, the `DepositERC20Compatible` and `WithdrawERC20Compatible` functions must be used.
 However, in order to do an ether transaction, one has to use the `DepositEther` and `WithdrawEther` functions.
 
 -----------------------------------------------------

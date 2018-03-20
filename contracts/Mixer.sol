@@ -275,10 +275,9 @@ contract Mixer is ERC223ReceivingContract {
         MixerWithdraw(ring_id, tag_x, entry.token, entry.denomination);
 
         // We want to return a copy of the entry in order to be able to access
-        // The token and denomination fileds of this object.
+        // the token and denomination fields of this object.
         // Since the following instructions might delete the entry in the storage
-        // We save it in a memory variable (deleted after the function execution)
-        // and return it to the parent function.
+        // we save it in a memory variable and return it to the calling function.
         Data memory entrySaved = entry;
 
         // When Tags.length == Pubkeys.length, the ring is dead
