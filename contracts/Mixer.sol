@@ -103,7 +103,7 @@ contract Mixer is ERC223ReceivingContract {
     /*
      * Given a GUID of a full Ring, return the Message to sign
     **/
-    function getMessage (bytes32 ring_guid)
+    function message(bytes32 ring_guid)
         public view returns (bytes32)
     {
         Data storage entry = m_rings[ring_guid];
@@ -112,14 +112,14 @@ contract Mixer is ERC223ReceivingContract {
         // Entry is empty, non-existant ring
         require(0 != entry.denomination);
 
-        return ring.Message();
+        return ring.message();
     }
 
     /*
      * Deposit a specific denomination of Ethers which can only be withdrawn
      * by providing a ring signature by one of the public keys.
     **/
-    function depositEther (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
+    function depositEther(address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
         public payable returns (bytes32)
     {
         require(token == 0);
@@ -133,7 +133,7 @@ contract Mixer is ERC223ReceivingContract {
      * Deposit a specific denomination of ERC20 compatible tokens which can only be withdrawn
      * by providing a ring signature by one of the public keys.
     **/
-    function depositERC20Compatible (address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
+    function depositERC20Compatible(address token, uint256 denomination, uint256 pub_x, uint256 pub_y)
         public returns (bytes32)
     {
         uint256 codeLength;
@@ -156,7 +156,7 @@ contract Mixer is ERC223ReceivingContract {
      * must provide a Signature which has a unique Tag. Each Tag can only be used
      * once.
     **/
-    function withdrawEther (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
+    function withdrawEther(bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
         public returns (bool)
     {
         Data memory entry = withdrawLogic(ring_id, tag_x, tag_y, ctlist);
@@ -170,7 +170,7 @@ contract Mixer is ERC223ReceivingContract {
      * must provide a Signature which has a unique Tag. Each Tag can only be used
      * once.
     **/
-    function withdrawERC20Compatible (bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
+    function withdrawERC20Compatible(bytes32 ring_id, uint256 tag_x, uint256 tag_y, uint256[] ctlist)
         public returns (bool)
     {
         Data memory entry = withdrawLogic(ring_id, tag_x, tag_y, ctlist);
@@ -187,7 +187,7 @@ contract Mixer is ERC223ReceivingContract {
      * this will create a new unfilled ring if none exists. When the ring
      * is full the 'filling' ring will be deleted.
     **/
-    function lookupFillingRing (address token, uint256 denomination)
+    function lookupFillingRing(address token, uint256 denomination)
         internal returns (bytes32, Data storage)
     {
         // The filling ID allows quick lookup for the same Token and Denomination
@@ -203,7 +203,7 @@ contract Mixer is ERC223ReceivingContract {
 
         // Entry must be initialized only once
         require(0 == entry.denomination);
-        require(entry.ring.Initialize(ring_guid));
+        require(entry.ring.initialize(ring_guid));
 
         entry.guid = ring_guid;
         entry.token = token;
@@ -230,7 +230,7 @@ contract Mixer is ERC223ReceivingContract {
 
         LinkableRing.Data storage ring = entry.ring;
 
-        require(ring.AddParticipant(pub_x, pub_y));
+        require(ring.addParticipant(pub_x, pub_y));
 
         // Associate Public X point with Ring GUID
         // This allows the ring to be recovered with the public key
@@ -241,9 +241,9 @@ contract Mixer is ERC223ReceivingContract {
 
         // When full, emit the GUID as the Ring Message
         // Participants need to sign this Message to Withdraw
-        if(ring.IsFull()) {
+        if(ring.isFull()) {
             delete m_filling[filling_id];
-            LogMixerReady(ring_guid, ring.Message());
+            LogMixerReady(ring_guid, ring.message());
         }
 
         return ring_guid;
@@ -258,12 +258,12 @@ contract Mixer is ERC223ReceivingContract {
         // Entry is empty, non-existant ring
         require(0 != entry.denomination);
 
-        require(ring.IsFull());
+        require(ring.isFull());
 
-        require(ring.SignatureValid(tag_x, tag_y, ctlist));
+        require(ring.isSignatureValid(tag_x, tag_y, ctlist));
 
         // Tag must be added before withdraw
-        ring.TagAdd(tag_x);
+        ring.tagAdd(tag_x);
 
         LogMixerWithdraw(ring_id, tag_x, entry.token, entry.denomination);
 
@@ -275,7 +275,7 @@ contract Mixer is ERC223ReceivingContract {
 
         // When Tags.length == Pubkeys.length, the ring is dead
         // Remove mappings and delete ring
-        if(ring.IsDead()) {
+        if(ring.isDead()) {
             for(uint i = 0; i < ring.pubkeys.length; i++) {
                 delete m_pubx_to_ring[ring.pubkeys[i].X];
             }
