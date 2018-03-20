@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 Clearmatics Technologies Ltd
+// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 
 // SPDX-License-Identifier: LGPL-3.0+
 
@@ -11,7 +11,7 @@ var JSONBigInt = require('json-bigint-string');
 
 const Mixer = artifacts.require("./Mixer.sol");
 
-/** Implements functionality similar to the 'which' command */
+// Implements functionality similar to the 'which' command
 function which (name, defaultPath) {
     var X;
     try {
@@ -23,8 +23,7 @@ function which (name, defaultPath) {
     return X.trim("\n");
 }
 
-
-/** Filesystem path of the 'orbital' tool */
+// Filesystem path of the 'orbital' tool
 const defaultOrbitalBinPath = "/home/user/go/src/github.com/clearmatics/orbital/orbital";
 function findOrbital () {
     var foundWithWhich = which("orbital", defaultOrbitalBinPath);
@@ -34,8 +33,7 @@ function findOrbital () {
     return foundWithWhich;
 }
 
-
-/** Execute `orbital` command, with array of arguments */
+// Execute `orbital` command, with array of arguments
 const orbitalPath = findOrbital();
 function orbital (args) {
     return execSync(shellescape([orbitalPath].concat(args))).toString().trim("\n");
@@ -69,6 +67,9 @@ if( orbitalPath ) {
             const owner = accounts[0];
             const token = 0;            // 0 = ether
             const txObj = { from: owner, value: txValue };
+            const logDepositEvent = 'LogMixerDeposit';
+            const logReadyEvent = 'LogMixerReady';
+            const logDeadEvent = 'LogMixerDead';
 
             let instance = await Mixer.deployed();
             const initialBalance = web3.eth.getBalance(instance.address);
@@ -81,13 +82,13 @@ if( orbitalPath ) {
                 const pubkey = keys.pubkeys[j];
                 k++;
 
-                let result = await instance.DepositEther(token, txValue, pubkey.x, pubkey.y, txObj);
+                let result = await instance.depositEther(token, txValue, pubkey.x, pubkey.y, txObj);
                 assert.ok(result.receipt.status, "Bad deposit status");
 
-                const depositEvent = result.logs.find(el => (el.event === 'MixerDeposit'));
+                const depositEvent = result.logs.find(el => (el.event === logDepositEvent));
                 ring_guid = depositEvent.args.ring_id.toString();
 
-                const readyEvent = result.logs.find(el => (el.event === 'MixerReady'));
+                const readyEvent = result.logs.find(el => (el.event === logReadyEvent));
                 if( readyEvent ) {
                     ring_msg = readyEvent.args.message.toString().substr(2);
                 }
@@ -117,13 +118,13 @@ if( orbitalPath ) {
                 const sig = inputs.signatures[k];
                 const tau = sig.tau;
                 const ctlist = sig.ctlist;
-                result = await instance.WithdrawEther(ring_guid, tau.x, tau.y, ctlist);
+                result = await instance.withdrawEther(ring_guid, tau.x, tau.y, ctlist);
                 assert.ok(result.receipt.status, "Bad withdraw status");
                 total_gas += result.receipt.gasUsed;
 
                 // Verify same signature can't withdraw twice
                 var ok = false;
-                await instance.WithdrawEther(ring_guid, tau.x, tau.y, ctlist).catch(function(err) {
+                await instance.withdrawEther(ring_guid, tau.x, tau.y, ctlist).catch(function(err) {
                     assert.include(err.message, 'revert', 'Withdraw twice should fail');
                     ok = true;
                 });
@@ -131,12 +132,13 @@ if( orbitalPath ) {
                     assert.fail("Duplicate withdraw didn't fail!");
             }
 
-            console.log("      Average Gas per Withdraw: " + (total_gas / i));
+            console.log("\tAverage Gas per Withdraw: " + (total_gas / i));
 
             // Verify the Ring is dead
-            const expectedMixerDead = result.logs.some(el => (el.event === 'MixerDead'));
+            const expectedMixerDead = result.logs.some(el => (el.event === logDeadEvent));
             assert.ok(expectedMixerDead, "Last Withdraw should emit MixerDead event");
-            const deadEvent = result.logs.find(el => (el.event === 'MixerDead'));
+
+            const deadEvent = result.logs.find(el => (el.event === logDeadEvent));
             assert.equal(deadEvent.args.ring_id.toString(), ring_guid, "Ring GUID batch doesn't match in MixerDead");
 
             // And that all money has been withdrawn
