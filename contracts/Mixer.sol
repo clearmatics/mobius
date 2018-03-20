@@ -193,8 +193,9 @@ contract Mixer is ERC223ReceivingContract {
         // The filling ID allows quick lookup for the same Token and Denomination
         var filling_id = sha256(token, denomination);
         var ring_guid = m_filling[filling_id];
-        if(ring_guid != 0)
+        if(ring_guid != 0) {
             return (filling_id, m_rings[ring_guid]);
+        }
 
         // The GUID is unique per Mixer instance, Nonce, Token and Denomination
         ring_guid = sha256(address(this), m_ring_ctr, filling_id);
