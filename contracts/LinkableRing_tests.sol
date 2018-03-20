@@ -6,85 +6,32 @@ pragma solidity ^0.4.19;
 
 import './LinkableRing.sol';
 
-contract LinkableRing_tests
-{
+contract LinkableRing_tests {
 	using LinkableRing for LinkableRing.Data;
 
 	LinkableRing.Data internal m_ring;
 
-	function LinkableRing_tests()
-        public
-    {
-        // Nothing ...
+	function LinkableRing_tests() public {
+        // Nothing
     }
 
-	function testInit ()
-		public returns (bool)
-	{
+	function testInit() public returns (bool) {
 		delete m_ring;
 
-		require( ! m_ring.IsInitialized() );
-		require( m_ring.IsDead() );
+		require(!m_ring.isInitialized());
+		require(m_ring.isDead());
 
-		_initTestRing();
+		initTestRing();
 
-		require( ! m_ring.IsFull() );
-
-		require( ! m_ring.IsDead() );
+		require(!m_ring.isFull());
+		require(!m_ring.isDead());
 
 		return true;
 	}
 
-	function _initTestRing ()
-		internal
-	{
-		delete m_ring;
-
-		var guid = sha256("1");
-		var ok = m_ring.Initialize(guid);
-		require( ok == true );
-		require( m_ring.IsInitialized() );
-		require( ! m_ring.IsFull() );
-	}
-
-	function _fillTestRing ()
-		internal
-	{
-		var ok = m_ring.AddParticipant( 15201544523224716611047554162655318369326098920760992806294282873621188361302, 8049887880302834643867918893986801628784209472486881120173132635179564996750 );
-		require( ok == true );
-		require( ! m_ring.IsFull() );
-
-		ok = m_ring.AddParticipant(2864146953215387991650307853187221646929890249230753473970630963555211270830, 19974888627227247767725306386952207830369770978312010830473870330715216459888 );
-		require( ok == true );
-
-		ok = m_ring.AddParticipant(11802586219790549114106218615216140214135730687869911031682317746534851646642, 18469118937248172961432772506316070842797392576874035050327233601294937134214);
-		require( ok == true );
-
-		ok = m_ring.AddParticipant(14750767202794174494069895486860808993207681341774320026808054547344054421581, 12924920412071921826297345645283965810489658634968309881653899964121243502566 );
-		require( ok == true );
-	}
-
-	function testParticipate ()
-		public returns (bool)
-	{
-		_initTestRing();
-		_fillTestRing();
-
-		var ok = m_ring.PubExists(15201544523224716611047554162655318369326098920760992806294282873621188361302);
-		require( ok == true );
-		require( m_ring.IsFull() );
-
-		require( m_ring.Message() == 0x291a6780850827fcd8621d0e5471343831109bc14142ec101527b048bb3d1794 );
-
-		return true;
-	}
-
-	function testVerify ()
-		public returns (bool)
-	{
-		_initTestRing();
-
-		_fillTestRing();
+	function testVerify() public returns (bool) {
+		initTestRing();
+		fillTestRing();
 
         uint256[] memory ctlist = new uint256[](8);
         ctlist[0] = 20853301309224204140850907483145190973044613001758378871848115918385899219387;
@@ -96,9 +43,46 @@ contract LinkableRing_tests
         ctlist[6] = 446022580115833093457380747787879591969245085567346575340759689027920458706;
         ctlist[7] = 16400172916399253914651469367823034567665816937929536474245909361083746809541;
 
-        var ok = m_ring.SignatureValid(13495246100508828436129396215696389042103917384015723197132056291949822869447, 17179563752757494496597752941318743229705747077314286085295431297834666711491, ctlist);
+        var ok = m_ring.isSignatureValid(13495246100508828436129396215696389042103917384015723197132056291949822869447, 17179563752757494496597752941318743229705747077314286085295431297834666711491, ctlist);
         require( ok );
 
 		return ok;
+	}
+
+	function testParticipate() public returns (bool) {
+		initTestRing();
+		fillTestRing();
+
+		var ok = m_ring.pubExists(15201544523224716611047554162655318369326098920760992806294282873621188361302);
+		require(ok == true);
+		require(m_ring.isFull());
+		require(m_ring.message() == 0x291a6780850827fcd8621d0e5471343831109bc14142ec101527b048bb3d1794);
+
+		return true;
+	}
+
+    function initTestRing() internal {
+		delete m_ring;
+
+		var guid = sha256("1");
+		var ok = m_ring.initialize(guid);
+		require(ok == true);
+		require(m_ring.isInitialized());
+		require(!m_ring.isFull());
+	}
+
+    function fillTestRing() internal {
+		var ok = m_ring.addParticipant( 15201544523224716611047554162655318369326098920760992806294282873621188361302, 8049887880302834643867918893986801628784209472486881120173132635179564996750 );
+		require(ok == true);
+		require(!m_ring.isFull());
+
+		ok = m_ring.addParticipant(2864146953215387991650307853187221646929890249230753473970630963555211270830, 19974888627227247767725306386952207830369770978312010830473870330715216459888 );
+		require(ok == true);
+
+		ok = m_ring.addParticipant(11802586219790549114106218615216140214135730687869911031682317746534851646642, 18469118937248172961432772506316070842797392576874035050327233601294937134214);
+		require(ok == true);
+
+		ok = m_ring.addParticipant(14750767202794174494069895486860808993207681341774320026808054547344054421581, 12924920412071921826297345645283965810489658634968309881653899964121243502566 );
+		require(ok == true);
 	}
 }
