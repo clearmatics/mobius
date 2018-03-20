@@ -81,7 +81,7 @@ if( orbitalPath ) {
                 const pubkey = keys.pubkeys[j];
                 k++;
 
-                let result = await instance.Deposit(token, txValue, pubkey.x, pubkey.y, txObj);
+                let result = await instance.DepositEther(token, txValue, pubkey.x, pubkey.y, txObj);
                 assert.ok(result.receipt.status, "Bad deposit status");
 
                 const depositEvent = result.logs.find(el => (el.event === 'MixerDeposit'));
@@ -117,13 +117,13 @@ if( orbitalPath ) {
                 const sig = inputs.signatures[k];
                 const tau = sig.tau;
                 const ctlist = sig.ctlist;
-                result = await instance.Withdraw(ring_guid, tau.x, tau.y, ctlist);
+                result = await instance.WithdrawEther(ring_guid, tau.x, tau.y, ctlist);
                 assert.ok(result.receipt.status, "Bad withdraw status");
                 total_gas += result.receipt.gasUsed;
 
                 // Verify same signature can't withdraw twice
                 var ok = false;
-                await instance.Withdraw(ring_guid, tau.x, tau.y, ctlist).catch(function(err) {
+                await instance.WithdrawEther(ring_guid, tau.x, tau.y, ctlist).catch(function(err) {
                     assert.include(err.message, 'revert', 'Withdraw twice should fail');
                     ok = true;
                 });

@@ -1,8 +1,8 @@
-// Copyright (c) 2016-2017 Clearmatics Technologies Ltd
+// Copyright (c) 2016-2018 Clearmatics Technologies Ltd
 
 // SPDX-License-Identifier: LGPL-3.0+
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.19;
 
 import {bn256g1 as Curve} from './bn256g1.sol';
 
@@ -14,7 +14,7 @@ import {bn256g1 as Curve} from './bn256g1.sol';
 * - https://eprint.iacr.org/2017/881.pdf
 *
 * Abstract:
-* 
+*
 * "Cryptocurrencies allow users to securely transfer money without
 *  relying on a trusted intermediary, and the transparency of their
 *  underlying ledgers also enables public verifiability. This openness,
@@ -62,9 +62,9 @@ import {bn256g1 as Curve} from './bn256g1.sol';
 *   h == csum
 *
 *
-* The Verify Signature routine differs from the Mobius whitepaper and 
-* is slightly less efficient because it performs one H() operation 
-* per public key, instead of appending all items to be hashed into a 
+* The Verify Signature routine differs from the Mobius whitepaper and
+* is slightly less efficient because it performs one H() operation
+* per public key, instead of appending all items to be hashed into a
 * list then hashing the result.
 *
 * Potential Performance improvements:
@@ -79,7 +79,7 @@ library LinkableRing
     using Curve for Curve.Point;
     uint256 public constant RING_SIZE = 4;
 
-    struct Data {        
+    struct Data {
         Curve.Point hash;
         Curve.Point[] pubkeys;
         uint256[] tags;
@@ -229,7 +229,7 @@ library LinkableRing
     */
     function _ringLink( uint256 previous_hash, uint256 cj, uint256 tj, Curve.Point tau, Curve.Point h, Curve.Point yj )
         internal view returns (uint256 ho)
-    {       
+    {
         Curve.Point memory yc = yj.ScalarMult(cj);
 
         // a ← g^t + y^c
@@ -262,7 +262,7 @@ library LinkableRing
         uint256 hashout = uint256(sha256(self.hash.X, tag_x, tag_y));
         uint256 csum = 0;
 
-        for (uint i = 0; i < self.pubkeys.length; i++) {         
+        for (uint i = 0; i < self.pubkeys.length; i++) {
             // h ← H(h, a, b)
             // sum({c...})
             uint256 cj = ctlist[2*i] % Curve.GenOrder();
