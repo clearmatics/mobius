@@ -228,13 +228,13 @@ var mixer = mixerContract.at(mixerContractAddress);
 
 1. Define listeners to listen to the Mixer events:
 ```javascript
-var mixerDepositEvent = mixer.MixerDeposit();
-mixerReadyEvent.watch(function(error, result){
+var mixerDepositEvent = mixer.LogMixerDeposit();
+mixerDepositEvent.watch(function(error, result){
     if (error) { console.log(error); return; }
     console.log("MixerDeposit event");
 });
 
-var mixerReadyEvent = mixer.MixerReady();
+var mixerReadyEvent = mixer.LogMixerReady();
 mixerReadyEvent.watch(function(error, result){
     if (error) { console.log(error); return; }
     console.log("MixerReady event");
@@ -242,13 +242,13 @@ mixerReadyEvent.watch(function(error, result){
     console.log("Ring GUID: " + result.args.ring_id); 
 });
 
-var mixerWithdrawEvent = mixer.MixerWithdraw();
+var mixerWithdrawEvent = mixer.LogMixerWithdraw();
 mixerWithdrawEvent.watch(function(error, result){
     if (error) { console.log(error); return; }
     console.log("MixerWithdraw event"); 
 });
 
-var mixerDeadEvent = mixer.MixerDead();
+var mixerDeadEvent = mixer.LogMixerDead();
 mixerDeadEvent.watch(function(error, result){
     if (error) { console.log(error); return; }
     console.log("MixerDead event"); 
@@ -258,7 +258,7 @@ mixerDeadEvent.watch(function(error, result){
 ```bash
 eth.getBalance("[mixerAddress]")
 ```
-3. Deposit funds to the Mixer:
+3. Deposit funds to the Mixer (after generating the keys with `orbital generate -n 1 > keys.json`):
 ```bash
 var pubX = [X component of pubKey in keys.json]
 var pubY = [Y component of pubKey in keys.json]
@@ -268,7 +268,7 @@ var gasValue: [AmountOfGasAliceIsReadyToPay]
 var yourDenomination = [AmountOfMoneyYouWantToTransfer]
 
 // We trigger a deposit from Alice's account
-mixer.Deposit(0, yourDenomination, pubX, pubY, {from: AliceAccount, value: yourDenomination, gas: gasValue})
+mixer.depositEther(0, yourDenomination, pubX, pubY, {from: AliceAccount, value: yourDenomination, gas: gasValue})
 ```
 4. Verify that the deposit has successfully been done on the contract (the balance of the contract should be equal to the denomination)specified by the sender in the `Deposit` function
 ```bash
@@ -291,7 +291,7 @@ var ringGuid = [ring GUID returned by the mixerReadyEvent];
 
 var gasValue: [AmountOfGasBobIsReadyToPay]
 
-mixer.Withdraw(ringGuid, tauX, tauY, ctlist, {from: bobAccount, gas: gasValue});
+mixer.withdrawEther(ringGuid, tauX, tauY, ctlist, {from: bobAccount, gas: gasValue});
 ```
 
 ### Step 4: Verify that the payment worked
