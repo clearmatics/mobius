@@ -37,10 +37,10 @@ The receiver then generates a linkable ring signature using their stealth privat
 
 The lifecycle and state of the Mixer and Rings is monitored using the following Events:
 
- * `MixerDeposit` - Tokens have been deposited into a Ring, includes: Ring GUID, Receiver Public Key, Token, Value
- * `MixerReady` - Withdrawals can be now me made, includes: Ring GUID, Signing Message
- * `MixerWithdraw` - Tokens have been withdrawn from a Ring, includes: Ring GUID, Tag, Token, Value
- * `MixerDead` - All tokens have been withdrawn from a Ring, includes: Ring GUID
+ * `LogMixerDeposit` - Tokens have been deposited into a Ring, includes: Ring GUID, Receiver Public Key, Token, Value
+ * `LogMixerReady` - Withdrawals can be now me made, includes: Ring GUID, Signing Message
+ * `LogMixerWithdraw` - Tokens have been withdrawn from a Ring, includes: Ring GUID, Tag, Token, Value
+ * `LogMixerDead` - All tokens have been withdrawn from a Ring, includes: Ring GUID
 
 The [Orbital](https://github.com/clearmatics/orbital) tool can be used to create the necessary keys and to create and verify compatible ring signatures, for details see the [Orbital Integration Tests](test/orbital.js).
 
