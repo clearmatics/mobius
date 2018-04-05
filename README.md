@@ -66,7 +66,7 @@ Currently the Gas usage is:
 
 ## Developing
 
-[Truffle][2] is used to develop and test the Möbius Smart Contract. This has a dependency of [Node.js][3]. [solidity-coverage][7] provides code coverage metrics.
+[Truffle][2] is used to develop and test the Möbius Smart Contract. This has a dependency on [Node.js][3]. [solidity-coverage][7] provides code coverage metrics.
 
 Prerequisites:
 
