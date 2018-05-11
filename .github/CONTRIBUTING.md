@@ -20,7 +20,7 @@ Please note we have a code of conduct, please follow it in all your interactions
 
 This project and everyone participating in it is governed by the [Code of Conduct][codeofconduct]. By participating, you are expected to uphold this code. Please report unacceptable behavior to [opensource@clearmatics.com][email].
 
-[codeofconduct]: CODE_OF_CONDUCT.md 
+[codeofconduct]: ../CODE_OF_CONDUCT.md 
 [semver]: http://semver.org/
 [email]: mailto:opensource@clearmatics.com
 
