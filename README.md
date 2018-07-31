@@ -14,7 +14,7 @@ Möbius is a Smart Contract that runs on Ethereum that offers trustless autonomo
 
 ## White Paper
 
-[S. Meiklejon, R. Mercer. Möbius: Trustless Tumbling for Transaction Privacy][1]
+[S. Meiklejohn, R. Mercer. Möbius: Trustless Tumbling for Transaction Privacy][1]
 
 
 ## Using Möbius
