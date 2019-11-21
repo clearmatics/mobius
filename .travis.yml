@@ -1,6 +1,6 @@
 language: node_js
 node_js:
-  - "12.13.0"
+  - "8.16.2"
   
 matrix:
  include:
