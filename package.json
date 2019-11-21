@@ -10,7 +10,7 @@
     "ganache-cli": "6.7.0",
     "json-bigint-string": "^1.0.0",
     "shell-escape": "^0.2.0",
-    "solidity-coverage": "0.6.7",
+    "solidity-coverage": "0.5.11",
     "tmp": "0.1.0",
     "truffle": "4.1.16"
   },
